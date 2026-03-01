@@ -1,0 +1,38 @@
+# --- Vivado Temporary/Log Files ---
+*.log
+*.jou
+*.str
+*.zip
+.Xil/
+.cache/
+
+# --- Project-Specific Junk Folders ---
+# These are automatically recreated by Vivado and should NOT be tracked.
+rubid.cache/
+rubid.hw/
+rubid.ip_user_files/
+rubid.runs/
+rubid.sim/
+
+# --- IP Core Generated Files ---
+# We keep the .xci (configuration) but ignore the massive output products.
+# Vivado will regenerate these locally when you open the project.
+rubid.srcs/sources_1/ip/*/*.v
+rubid.srcs/sources_1/ip/*/*.vhd
+rubid.srcs/sources_1/ip/*/*.veo
+rubid.srcs/sources_1/ip/*/*.vho
+rubid.srcs/sources_1/ip/*/*.xml
+rubid.srcs/sources_1/ip/*/*.xdc
+rubid.srcs/sources_1/ip/*/*.mem
+rubid.srcs/sources_1/ip/*/*.mif
+
+# --- Block Designs (IP Integrator) ---
+# Only keep the .bd file; ignore the generated HDL wrappers/folders.
+rubid.srcs/sources_1/bd/*/hdl/
+rubid.srcs/sources_1/bd/*/ip/
+rubid.srcs/sources_1/bd/*/hw_handoff/
+rubid.srcs/sources_1/bd/*/ui/
+
+# --- OS Specific Files ---
+.DS_Store
+Thumbs.db
