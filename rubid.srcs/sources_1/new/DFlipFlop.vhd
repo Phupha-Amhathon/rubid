@@ -60,18 +60,26 @@ entity DFlipFlop is
         D   : in  std_logic;
         Clk : in  std_logic;
         Q   : out std_logic;
-        nQ  : out std_logic
+        nQ  : out std_logic;
+        Pre, Clr: in std_logic --active high pai lei
     );
 end DFlipFlop;
 
 architecture behavioral of DFlipFlop is
 begin
-    process(Clk)
+    process(Clk) 
     begin
-        -- Falling Edge
         if falling_edge(Clk) then
-            Q  <= D;
-            nQ <= not D;
+            if (Pre = '1') then 
+               Q <= '1';
+               nQ <= '0';
+            elsif (Clr = '1') then
+               Q <= '0';
+               nQ <= '1'; 
+            else
+               Q  <= D;
+               nQ <= not D;
+            end if;
         end if;
     end process;
 end behavioral;

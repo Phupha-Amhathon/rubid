@@ -6,60 +6,70 @@ entity tb_Rubid is
 end tb_Rubid;
 
 architecture sim of tb_Rubid is
-    -- 1. ประกาศ Component Rubid (ต้องตรงกับ Entity ที่คุณแก้ชื่อพอร์ต)
+    -- 1. Component Declaration (Matches your simplified Rubid entity)
     component Rubid
         Port ( 
             S : in STD_LOGIC_VECTOR (2 downto 0);
             Clk : in STD_LOGIC;
-            out_U0, out_U3, out_U6, out_U9 : out std_logic_vector(2 downto 0);
-            out_F0, out_F3, out_F6, out_F9 : out std_logic_vector(2 downto 0);
-            out_L0, out_L3, out_L6, out_L9 : out std_logic_vector(2 downto 0);
-            out_R0, out_R3, out_R6, out_R9 : out std_logic_vector(2 downto 0);
-            out_B0, out_B3, out_B6, out_B9 : out std_logic_vector(2 downto 0);
-            out_D0, out_D3, out_D6, out_D9 : out std_logic_vector(2 downto 0);
             Q_all : out STD_LOGIC_VECTOR (71 downto 0)
         );
     end component;
 
-    -- 2. สัญญาณจำลอง (Internal Signals)
-    signal t_S   : std_logic_vector(2 downto 0) := "000";
-    signal t_Clk : std_logic := '0';
-    
-    -- สัญญาณรับค่าแยกทุกหน้า (เพื่อดูใน Waveform และ Monitor)
-    signal t_U0, t_U3, t_U6, t_U9 : std_logic_vector(2 downto 0);
-    signal t_F0, t_F3, t_F6, t_F9 : std_logic_vector(2 downto 0);
-    signal t_L0, t_L3, t_L6, t_L9 : std_logic_vector(2 downto 0);
-    signal t_R0, t_R3, t_R6, t_R9 : std_logic_vector(2 downto 0);
-    signal t_B0, t_B3, t_B6, t_B9 : std_logic_vector(2 downto 0);
-    signal t_D0, t_D3, t_D6, t_D9 : std_logic_vector(2 downto 0);
+    -- 2. Simulation Signals
+    signal t_S     : std_logic_vector(2 downto 0) := "000";
+    signal t_Clk   : std_logic := '0';
     signal t_Q_all : std_logic_vector(71 downto 0);
 
-    -- ฟังก์ชันช่วยแปลสี (Color Decoder)
+    -- Helper Function to translate the 3-bit color code to text
     function get_color_name(val : std_logic_vector(2 downto 0)) return string is
     begin
         case val is
-            when "000" => return "WHITE ";
-            when "001" => return "ORANGE";
-            when "010" => return "GREEN ";
-            when "011" => return "RED   ";
-            when "100" => return "YELLOW";
-            when "101" => return "BLUE  ";
-            when others => return "??    ";
+            when "000" => return "WHT"; -- White
+            when "001" => return "GRN"; -- Green
+            when "010" => return "YLW"; -- Yellow
+            when "011" => return "RED"; -- Red
+            when "100" => return "BLU"; -- Blue
+            when "101" => return "ORG"; -- Orange
+            when others => return "???";
         end case;
     end function;
 
     constant CLK_PERIOD : time := 10 ns;
 
+    -- Aliases for easier debugging: Mapping the 72-bit vector to faces
+    -- Based on your concatenation: s_u0 & s_u1 & s_u2 & s_u3 ...
+    signal u0, u1, u2, u3 : std_logic_vector(2 downto 0);
+    signal f0, f1, f2, f3 : std_logic_vector(2 downto 0);
+    signal l0, l1, l2, l3 : std_logic_vector(2 downto 0);
+    signal r0, r1, r2, r3 : std_logic_vector(2 downto 0);
+    signal b0, b1, b2, b3 : std_logic_vector(2 downto 0);
+    signal d0, d1, d2, d3 : std_logic_vector(2 downto 0);
+
 begin
-    -- 3. Port Map เชื่อมต่อทุกหน้าให้ครบ
+
+    -- Extracting 3-bit slices from the 72-bit vector
+    u0 <= t_Q_all(71 downto 69); u1 <= t_Q_all(68 downto 66); 
+    u2 <= t_Q_all(65 downto 63); u3 <= t_Q_all(62 downto 60);
+    
+    f0 <= t_Q_all(59 downto 57); f1 <= t_Q_all(56 downto 54); 
+    f2 <= t_Q_all(53 downto 51); f3 <= t_Q_all(50 downto 48);
+    
+    l0 <= t_Q_all(47 downto 45); l1 <= t_Q_all(44 downto 42); 
+    l2 <= t_Q_all(41 downto 39); l3 <= t_Q_all(38 downto 36);
+    
+    r0 <= t_Q_all(35 downto 33); r1 <= t_Q_all(32 downto 30); 
+    r2 <= t_Q_all(29 downto 27); r3 <= t_Q_all(26 downto 24);
+    
+    b0 <= t_Q_all(23 downto 21); b1 <= t_Q_all(20 downto 18); 
+    b2 <= t_Q_all(17 downto 15); b3 <= t_Q_all(14 downto 12);
+    
+    d0 <= t_Q_all(11 downto 9);  d1 <= t_Q_all(8 downto 6); 
+    d2 <= t_Q_all(5 downto 3);   d3 <= t_Q_all(2 downto 0);
+
+    -- 3. Port Map
     UUT: Rubid port map (
-        S => t_S, Clk => t_Clk,
-        out_U0 => t_U0, out_U3 => t_U3, out_U6 => t_U6, out_U9 => t_U9,
-        out_F0 => t_F0, out_F3 => t_F3, out_F6 => t_F6, out_F9 => t_F9,
-        out_L0 => t_L0, out_L3 => t_L3, out_L6 => t_L6, out_L9 => t_L9,
-        out_R0 => t_R0, out_R3 => t_R3, out_R6 => t_R6, out_R9 => t_R9,
-        out_B0 => t_B0, out_B3 => t_B3, out_B6 => t_B6, out_B9 => t_B9,
-        out_D0 => t_D0, out_D3 => t_D3, out_D6 => t_D6, out_D9 => t_D9,
+        S => t_S, 
+        Clk => t_Clk,
         Q_all => t_Q_all
     );
 
@@ -70,55 +80,114 @@ begin
         t_Clk <= '1'; wait for CLK_PERIOD/2;
     end process;
 
-    -- 5. Multi-Case Stimulus
+    -- 5. Stimulus Process
     stim_proc: process
-    begin		
+    begin       
         wait for 20 ns;
         
-        -- [CASE 1] PRESET: ตั้งค่าสีเริ่มต้น (ต้องเห็นสีครบ 6 หน้า)
-        report ">>> CASE 1: PRESET ALL FACES <<<";
+        -- [CASE 1] RESET/INITIALIZE
         t_S <= "111"; wait for CLK_PERIOD * 2;
+        report ">>> CASE 1: RESET ALL FACES (S=111) <<<";
 
-        -- [CASE 2] HOLD: เช็คความเสถียร (สีต้องไม่เปลี่ยน)
-        report ">>> CASE 2: HOLD STATE (S=000) <<<";
+        -- [CASE 2] HOLD
         t_S <= "000"; wait for CLK_PERIOD * 4;
+        report ">>> CASE 2: HOLD STATE (S=000) <<<";
 
-        -- [CASE 3] ROTATION MODE 1: บิดครั้งที่ 1 (สมมติบิดหน้า Up 90 องศา)
-        report ">>> CASE 3: FIRST ROTATION (S=001) <<<";
+        -- [CASE 3] ROTATION F
         t_S <= "001"; wait for CLK_PERIOD * 1; 
         t_S <= "000"; wait for CLK_PERIOD * 4;
+        report ">>> CASE 3: MOVE FRONT (S=001) <<<";
 
-        -- [CASE 4] ROTATION MODE 2: บิดครั้งที่ 2 (สมมติบิดหน้า Front 90 องศา)
-        report ">>> CASE 4: SECOND ROTATION (S=010) <<<";
+        -- [CASE 4] ROTATION R
         t_S <= "010"; wait for CLK_PERIOD * 1;
         t_S <= "000"; wait for CLK_PERIOD * 4;
+                report ">>> CASE 4: MOVE RIGHT (S=010) <<<";
 
-        -- [CASE 5] CONTINUOUS ROTATION: บิดต่อเนื่อง 2 ครั้ง
-        report ">>> CASE 5: CONTINUOUS ROTATION (S=011) <<<";
-        t_S <= "011"; wait for CLK_PERIOD * 2; -- หมุน 180 องศา (90x2)
+        t_S <= "111"; wait for CLK_PERIOD * 1;
         t_S <= "000"; wait for CLK_PERIOD * 4;
+                report ">>> CASE 5: reset (111) <<<";
+
+        t_S <= "001"; wait for CLK_PERIOD * 1;
+        t_S <= "000"; wait for CLK_PERIOD * 4;
+                report ">>> CASE 6: up (111) <<<";
+
+        t_S <= "010"; wait for CLK_PERIOD * 1;
+        t_S <= "000"; wait for CLK_PERIOD * 4;
+                report ">>> CASE 7: side (111) <<<";
+
+        t_S <= "011"; wait for CLK_PERIOD * 1;
+        t_S <= "000"; wait for CLK_PERIOD * 4;
+                report ">>> CASE 8: down (111) <<<";
+
+        t_S <= "100"; wait for CLK_PERIOD * 1;
+        t_S <= "000"; wait for CLK_PERIOD * 4;
+                report ">>> CASE 9: round (111) <<<";
+
+        t_S <= "101"; wait for CLK_PERIOD * 1;
+        t_S <= "000"; wait for CLK_PERIOD * 4;
+                report ">>> CASE 10: and (111) <<<";
+
+        t_S <= "110"; wait for CLK_PERIOD * 1;
+        t_S <= "000"; wait for CLK_PERIOD * 4;
+                report ">>> CASE 11: round (111) <<<";
+
+        
+        t_S <= "110"; wait for CLK_PERIOD * 1;
+        t_S <= "110"; wait for CLK_PERIOD * 1;
+        t_S <= "110"; wait for CLK_PERIOD * 1;
+                report ">>> CASE 11: in (111) <<<";
+
+        t_S <= "101"; wait for CLK_PERIOD * 1;
+        t_S <= "101"; wait for CLK_PERIOD * 1;
+        t_S <= "101"; wait for CLK_PERIOD * 1;
+                report ">>> CASE 10: side (111) <<<";
+
+        t_S <= "100"; wait for CLK_PERIOD * 1;
+        t_S <= "100"; wait for CLK_PERIOD * 1;
+        t_S <= "100"; wait for CLK_PERIOD * 1;
+                report ">>> CASE 9: round (111) <<<";
+
+        t_S <= "011"; wait for CLK_PERIOD * 1;
+        t_S <= "011"; wait for CLK_PERIOD * 1;
+        t_S <= "011"; wait for CLK_PERIOD * 1;
+                report ">>> CASE 8: down (111) <<<";
+
+        
+
+        t_S <= "010"; wait for CLK_PERIOD * 1;
+        t_S <= "010"; wait for CLK_PERIOD * 1;
+        t_S <= "010"; wait for CLK_PERIOD * 1;
+                report ">>> CASE 7: side (111) <<<";
+                
+        t_S <= "001"; wait for CLK_PERIOD * 1;
+        t_S <= "001"; wait for CLK_PERIOD * 1;
+        t_S <= "001"; wait for CLK_PERIOD * 1;
+                report ">>> CASE 6: up (111) <<<";
+                report ">>> CASE 6: up (111) <<<";
 
         report "--- ALL TEST CASES FINISHED ---";
         wait;
     end process;
 
-    -- 6. Full Cube Monitor (พิมพ์สภาพรูบิกทั้งลูกลง Tcl Console)
+    -- 6. Monitor: Visualizes the cube in the Tcl Console
     monitor: process(t_Q_all)
     begin
-        report "--- CUBE STATUS UPDATE ---";
-        report "   UP:    " & get_color_name(t_U0) & " | " & get_color_name(t_U3);
-        report "          " & get_color_name(t_U6) & " | " & get_color_name(t_U9);
-        report "   FRONT: " & get_color_name(t_F0) & " | " & get_color_name(t_F3);
-        report "          " & get_color_name(t_F6) & " | " & get_color_name(t_F9);
-        report "   LEFT:  " & get_color_name(t_L0) & " | " & get_color_name(t_L3);
-        report "          " & get_color_name(t_L6) & " | " & get_color_name(t_L9);
-        report "   RIGHT: " & get_color_name(t_R0) & " | " & get_color_name(t_R3);
-        report "          " & get_color_name(t_R6) & " | " & get_color_name(t_R9);
-        report "   BACK:  " & get_color_name(t_B0) & " | " & get_color_name(t_B3);
-        report "          " & get_color_name(t_B6) & " | " & get_color_name(t_B9);
-        report "   DOWN:  " & get_color_name(t_D0) & " | " & get_color_name(t_D3);
-        report "          " & get_color_name(t_D6) & " | " & get_color_name(t_D9);
-        report "--------------------------";
+        report LF & 
+          "      [ " & get_color_name(u0) & " " & get_color_name(u1) & " ]" & LF &
+          "      [ " & get_color_name(u2) & " " & get_color_name(u3) & " ]" & LF &
+          "------------------------------------" & LF &
+          get_color_name(l0) & " " & get_color_name(l1) & " | " &
+          get_color_name(f0) & " " & get_color_name(f1) & " | " &
+          get_color_name(r0) & " " & get_color_name(r1) & " | " &
+          get_color_name(b0) & " " & get_color_name(b1) & LF &
+          
+          get_color_name(l2) & " " & get_color_name(l3) & " | " &
+          get_color_name(f2) & " " & get_color_name(f3) & " | " &
+          get_color_name(r2) & " " & get_color_name(r3) & " | " &
+          get_color_name(b2) & " " & get_color_name(b3) & LF &
+          "------------------------------------" & LF &
+          "      [ " & get_color_name(d0) & " " & get_color_name(d1) & " ]" & LF &
+          "      [ " & get_color_name(d2) & " " & get_color_name(d3) & " ]" & LF;
     end process;
 
 end sim;

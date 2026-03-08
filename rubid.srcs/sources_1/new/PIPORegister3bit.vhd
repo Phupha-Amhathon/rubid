@@ -26,7 +26,8 @@ entity PIPORegister3bit is
   Port (
     I : in std_logic_vector(2 downto 0);
     Clk : in std_logic;
-    Q : out std_logic_vector(2 downto 0)
+    Q : out std_logic_vector(2 downto 0);
+    Pre, Clr : in std_logic
   );
 end PIPORegister3bit;
 
@@ -36,17 +37,18 @@ architecture structural of PIPORegister3bit is
         D   : in  std_logic;
         Clk : in  std_logic;
         Q   : out std_logic;
-        nQ  : out std_logic
+        nQ  : out std_logic;
+        Pre, Clr : in std_logic 
       );
     end component;
 begin
     B2: DFlipFlop port map(
-        Clk => Clk, D => I(2), Q => Q(2), nQ => open  
+        Clk => Clk, D => I(2), Q => Q(2), nQ => open, Pre => Pre, Clr => Clr  
     );
     B1: DFlipFlop port map(
-        Clk => Clk, D => I(1), Q => Q(1), nQ => open  
+        Clk => Clk, D => I(1), Q => Q(1), nQ => open, Pre => Pre, Clr => Clr  
     );
     B0: DFlipFlop port map(
-        Clk => Clk, D => I(0), Q => Q(0), nQ => open
+        Clk => Clk, D => I(0), Q => Q(0), nQ => open, Pre => Pre, Clr => Clr
     );
 end structural;

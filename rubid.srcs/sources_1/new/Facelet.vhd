@@ -22,22 +22,13 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity Facelet is
     Port ( 
-        W3, W2, W1, W0 : in STD_LOGIC_VECTOR (2 downto 0);
-        Pre : in std_logic_vector( 2 downto 0);
-        S : in std_logic_vector(2 downto 0);
-        Clk : in std_logic;
-        Q : out std_logic_vector( 2 downto 0)
+        MD, MB, ML, MU, MR, MF : in STD_LOGIC_VECTOR (2 downto 0); --cndidate entry line, eg move R (MR) shift value from MR line
+        load_init : in std_logic_vector( 2 downto 0); --set init color
+        S : in std_logic_vector(2 downto 0); -- selector
+        Clk : in std_logic; 
+        Q : out std_logic_vector( 2 downto 0) --3bit output represent cur color
     );
 end Facelet;
 
@@ -46,7 +37,8 @@ architecture structural of Facelet is
       Port (
         I : in std_logic_vector(2 downto 0);
         Clk : in std_logic;
-        Q : out std_logic_vector(2 downto 0)
+        Q : out std_logic_vector(2 downto 0);
+        Pre, Clr : in std_logic
       );
     end component;
     
@@ -68,16 +60,16 @@ begin
     REG: PIPORegister3bit port map(
         I => sI, 
         Clk => Clk, 
-        Q => sQ
+        Q => sQ, 
+        Pre => '0',
+        Clr => '0'
     );
     
     Q <= sQ;
     
     SEL: MUX8To1_3bit port map(
-            I0 => sQ, I1 => W0, I2 => W1, I3 => W2, I4 => W3, I5 => sQ, I6 => sQ, I7 => Pre, 
+            I0 => sQ, I1 => MF, I2 => MR, I3 => MU, I4 => ML, I5 => MB, I6 => MD, I7 => load_init, 
             S => S,
             Y => sI 
         );
-        
-
 end structural;

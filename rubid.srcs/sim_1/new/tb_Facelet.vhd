@@ -2,73 +2,101 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity tb_Facelet is
--- Testbench ไม่มี Port
+-- Testbench has no ports
 end tb_Facelet;
 
 architecture sim of tb_Facelet is
-    -- 1. ประกาศ Component ที่จะทดสอบ
+    -- 1. Component Declaration
     component Facelet
         Port ( 
-            W2, W1, W0 : in STD_LOGIC_VECTOR (2 downto 0);
-            Pre        : in STD_LOGIC_VECTOR (2 downto 0);
-            S          : in STD_LOGIC_VECTOR (2 downto 0);
-            Clk        : in STD_LOGIC;
-            Q          : out STD_LOGIC_VECTOR (2 downto 0)
+            MD, MB, ML, MU, MR, MF : in STD_LOGIC_VECTOR (2 downto 0);
+            load_init : in std_logic_vector(2 downto 0);
+            S : in std_logic_vector(2 downto 0);
+            Clk : in std_logic; 
+            Q : out std_logic_vector(2 downto 0)
         );
     end component;
 
-    -- 2. สัญญาณจำลอง (Internal Signals)
-    signal t_W2, t_W1, t_W0 : std_logic_vector(2 downto 0) := "000";
-    signal t_Pre            : std_logic_vector(2 downto 0) := "111"; -- สมมติสีขาว
-    signal t_S              : std_logic_vector(2 downto 0) := "000";
-    signal t_Clk            : std_logic := '0';
-    signal t_Q              : std_logic_vector(2 downto 0);
+    -- 2. Internal Signals
+    signal t_MD : std_logic_vector(2 downto 0) := "110"; -- Purple-ish
+    signal t_MB : std_logic_vector(2 downto 0) := "101"; -- Blue
+    signal t_ML : std_logic_vector(2 downto 0) := "100"; -- Yellow
+    signal t_MU : std_logic_vector(2 downto 0) := "011"; -- Red
+    signal t_MR : std_logic_vector(2 downto 0) := "010"; -- Green
+    signal t_MF : std_logic_vector(2 downto 0) := "001"; -- Orange
+    signal t_load_init : std_logic_vector(2 downto 0) := "000"; -- White
+    signal t_S   : std_logic_vector(2 downto 0) := "000";
+    signal t_Clk : std_logic := '0';
+    signal t_Q   : std_logic_vector(2 downto 0);
 
-    -- กำหนดความเร็ว Clock (เช่น 100MHz = 10ns)
     constant CLK_PERIOD : time := 10 ns;
 
 begin
-    -- 3. เชื่อมต่อ Component เข้ากับสัญญาณจำลอง (UUT: Unit Under Test)
+    -- 3. Port Map
     UUT: Facelet port map (
-        W2 => t_W2, W1 => t_W1, W0 => t_W0,
-        Pre => t_Pre, S => t_S, Clk => t_Clk, Q => t_Q
+        MD => t_MD, MB => t_MB, ML => t_ML, 
+        MU => t_MU, MR => t_MR, MF => t_MF,
+        load_init => t_load_init,
+        S => t_S, Clk => t_Clk, Q => t_Q
     );
 
-    -- 4. สร้างสัญญาณ Clock (Oscillator)
+    -- 4. Clock Generator
     clk_process : process
     begin
-        t_Clk <= '0';
-        wait for CLK_PERIOD/2;
-        t_Clk <= '1';
-        wait for CLK_PERIOD/2;
+        t_Clk <= '0'; wait for CLK_PERIOD/2;
+        t_Clk <= '1'; wait for CLK_PERIOD/2;
     end process;
 
-    -- 5. ขั้นตอนการทดสอบ (Stimulus)
+    -- 5. Stimulus Process
     stim_proc: process
-    begin		
-        -- รอให้ระบบนิ่งแป๊บนึง
-        wait for 20 ns;
+    begin
+        -- เริ่มต้นสัญญาณอาจจะเป็น 'U' 
+        wait for 15 ns;
 
-        -- ทดสอบการ Hold ค่า (S=000): Q ควรจะยังนิ่งหรือเป็นค่าสุ่ม
-        t_S <= "000";
-        wait for 20 ns;
+        -- [TEST 1] Load Initial Value (S = 111) 
+        -- แก้ปัญหา Undefined: ต้องบังคับค่าเข้า Register ก่อน
+        report ">>> Testing Load Initial (Reset) <<<";
+        t_S <= "111"; 
+        t_load_init <= "000"; -- ตั้งเป็นสีขาว
+        wait for CLK_PERIOD;
 
-        -- ทดสอบ Load ค่าจาก W0 (S=001): สมมติให้ W0 เป็นสีแดง "001"
-        t_W0 <= "001";
-        t_S  <= "001";
-        wait for 20 ns; -- หลัง Falling Edge, Q ควรกลายเป็น "001"
+        -- [TEST 2] Hold Value (S = 000)
+        report ">>> Testing Hold State <<<";
+        t_S <= "000"; 
+        wait for CLK_PERIOD * 2;
 
-        -- ทดสอบเปลี่ยนกลับไป Hold (S=000): แม้ W0 จะเปลี่ยน แต่ Q ต้องนิ่ง
-        t_S  <= "000";
-        t_W0 <= "010"; -- เปลี่ยน W0 เล่นๆ
-        wait for 20 ns;
+        -- [TEST 3] Select MF (S = 001)
+        report ">>> Testing Move Front Selection <<<";
+        t_S <= "001"; 
+        wait for CLK_PERIOD;
+        
+        -- [TEST 4] Select MR (S = 010)
+        report ">>> Testing Move Right Selection <<<";
+        t_S <= "010"; 
+        wait for CLK_PERIOD;
 
-        -- ทดสอบการ Preset (S=111): โหลดสีจาก Pre ("111")
-        t_S <= "111";
-        wait for 20 ns;
+        -- [TEST 5] Select MU (S = 011)
+        report ">>> Testing Move Up Selection <<<";
+        t_S <= "011"; 
+        wait for CLK_PERIOD;
 
-        -- จบการทดสอบ
+        -- [TEST 6] Select ML (S = 100)
+        report ">>> Testing Move Left Selection <<<";
+        t_S <= "100"; 
+        wait for CLK_PERIOD;
+
+        -- [TEST 7] Select MB (S = 101)
+        report ">>> Testing Move Back Selection <<<";
+        t_S <= "101"; 
+        wait for CLK_PERIOD;
+
+        -- [TEST 8] Select MD (S = 110)
+        report ">>> Testing Move Down Selection <<<";
+        t_S <= "110"; 
+        wait for CLK_PERIOD;
+
+        t_S <= "000"; -- กลับไป Hold
+        report "--- Facelet Test Finished ---";
         wait;
     end process;
-
 end sim;
