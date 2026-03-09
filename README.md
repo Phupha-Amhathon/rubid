@@ -46,6 +46,11 @@ These are the hand-written VHDL files that implement the cube logic, built botto
 | `MUX8To1.vhd` | **1-bit 8-to-1 multiplexer.** Gate-level structural design using a 3-stage tree of `MUX2To1`. |
 | `MUX2To1.vhd` | **1-bit 2-to-1 multiplexer.** Gate-level primitive: `Y = (I0 AND NOT S) OR (I1 AND S)`. |
 | `3bitMUX8To1.vhd` | Placeholder/stub file (empty architecture). |
+| `LFSR6bit.vhd` | **6-bit Fibonacci LFSR.** Structural, built from six `DFlipFlop` instances with one XOR feedback gate. Polynomial x⁶ + x + 1 (taps at bits 5 and 0) gives a maximal-length period of 63. Seeded to `101010` on RESET to avoid the all-zero lock-up state. |
+| `Counter5bit.vhd` | **5-bit synchronous up counter.** Gate-level (AND/OR/NOT/XOR + `DFlipFlop`). Counts 0 → 20, then asserts `done` and freezes. Provides the 20-move window for the scrambler. |
+| `MoveDecoder.vhd` | **3-bit → one-hot move decoder.** Purely combinational gate-level logic. Maps the lower 3 bits of the LFSR to exactly one of {F, R, U, L, B, D}. Values `000` and `111` are remapped to F and D respectively. All outputs are ANDed with `enable` (= NOT done). |
+| `RandMoveGen.vhd` | **Random 20-move generator.** Structural top-level wiring `LFSR6bit` + `Counter5bit` + `MoveDecoder` together. Outputs individual F, R, U, L, B, D signals and a `done` flag. |
+| `RubidRand.vhd` | **Complete auto-scrambler.** Structural top-level connecting `RandMoveGen` → `RubidMark1`. Applies 20 pseudo-random moves to the cube starting from the solved state. |
 
 ### Colour Encoding (3-bit)
 
@@ -68,6 +73,7 @@ These are the hand-written VHDL files that implement the cube logic, built botto
 | `tb_Rubid.vhd` | Tests the core `Rubid` module directly using a 3-bit selector stimulus. Includes colour aliases for all 24 facelets (u0–u3, f0–f3, etc.). |
 | `tb_Facelet.vhd` | Unit test for a single `Facelet` component. |
 | `tb_moveEncoder.vhd` | Unit test for the `moveEncoder` priority encoder. |
+| `tb_RandMoveGen.vhd` | Tests `RandMoveGen` + `RubidMark1` together. Verifies that exactly 20 pseudo-random moves are generated and applied to the cube, printing each move name and the resulting cube diagram. |
 
 ---
 
@@ -80,6 +86,8 @@ These are the hand-written VHDL files that implement the cube logic, built botto
 ---
 
 ## Design Architecture
+
+### Cube simulator
 
 ```
 RubidMark1  (Top-level – FPGA I/O)
@@ -94,6 +102,17 @@ RubidMark1  (Top-level – FPGA I/O)
                 └── 3-stage tree of MUX2To1
 ```
 
+### Auto-scrambler (random 20 moves)
+
+```
+RubidRand  (Top-level auto-scrambler)
+├── RandMoveGen  (pseudo-random move sequencer)
+│   ├── LFSR6bit      (6-bit Fibonacci LFSR, seed=101010, poly x⁶+x+1)
+│   ├── Counter5bit   (5-bit up counter, stops at 20 → done=1)
+│   └── MoveDecoder   (LFSR[2:0] → one-hot {F,R,U,L,B,D}, gated by enable)
+└── RubidMark1  (cube simulator, same as above)
+```
+
 ---
 
 ## Technology
@@ -105,3 +124,107 @@ RubidMark1  (Top-level – FPGA I/O)
 | Tool | Xilinx Vivado 2025.2 |
 | Simulation | XSim (Vivado built-in) |
 | Debug | Xilinx ILA (Integrated Logic Analyzer) |
+
+---
+
+## Randomised 20-Move Scrambler (Gate Level)
+
+### Problem
+
+Generate 20 pseudo-random Rubik's Cube moves {F, R, U, L, B, D} entirely from combinational and sequential gate primitives.
+
+### Solution: LFSR-based move sequencer
+
+The scrambler is built from three collaborating gate-level modules:
+
+```
+LFSR6bit ─── Q[2:0] ──► MoveDecoder ─── F,R,U,L,B,D ──►
+                              ▲
+Counter5bit ─── done ──► enable (NOT done)
+```
+
+#### 1 — `LFSR6bit` — pseudo-random bit source
+
+A **6-bit Fibonacci LFSR** (Linear Feedback Shift Register) built from six `DFlipFlop` instances and one XOR gate.
+
+```
+Feedback = Q(5) XOR Q(0)          ← polynomial x⁶ + x + 1, period = 63
+
+Shift at every falling clock edge:
+  Q(5) ← Q(4) ← Q(3) ← Q(2) ← Q(1) ← Q(0) ← feedback
+```
+
+Seed on RESET = **`101010`** (loaded via the synchronous Pre/Clr pins of each DFF).  This avoids the all-zero lock-up state.
+
+#### 2 — `Counter5bit` — 20-move window
+
+A **5-bit synchronous up counter** built entirely from DFlipFlops and carry-chain gate logic. It counts 0 → 20, then asserts `done` and holds.
+
+```
+done   = Q(4) AND NOT Q(3) AND Q(2) AND NOT Q(1) AND NOT Q(0)   -- count = 20
+enable = NOT done
+```
+
+#### 3 — `MoveDecoder` — LFSR bits → move signal
+
+A purely combinational gate-level decoder maps the lower 3 bits of the LFSR to one-hot {F, R, U, L, B, D}:
+
+| LFSR Q\[2:0\] | Move |
+|:---:|:---:|
+| 000 | F *(remapped)* |
+| 001 | F |
+| 010 | R |
+| 011 | U |
+| 100 | L |
+| 101 | B |
+| 110 | D |
+| 111 | D *(remapped)* |
+
+```vhdl
+F <= (NOT Q2 AND NOT Q1)                         AND enable;
+R <= (NOT Q2 AND Q1 AND NOT Q0)                  AND enable;
+U <= (NOT Q2 AND Q1 AND Q0)                      AND enable;
+L <= (Q2 AND NOT Q1 AND NOT Q0)                  AND enable;
+B <= (Q2 AND NOT Q1 AND Q0)                      AND enable;
+D <= (Q2 AND Q1)                                 AND enable;
+```
+
+#### 4 — `RandMoveGen` — structural top-level
+
+Wires LFSR6bit + Counter5bit + MoveDecoder.  Outputs: F, R, U, L, B, D, done.
+
+#### 5 — `RubidRand` — complete auto-scrambler
+
+Connects RandMoveGen → RubidMark1.  A single module you can drop into a design that needs a scrambled cube.
+
+### Resulting 20-move sequence (seed `101010`)
+
+| # | Move | # | Move |
+|--:|:----:|--:|:----:|
+| 1 | R | 11 | D |
+| 2 | B | 12 | D |
+| 3 | U | 13 | B |
+| 4 | D | 14 | U |
+| 5 | L | 15 | D |
+| 6 | F | 16 | B |
+| 7 | U | 17 | R |
+| 8 | D | 18 | L |
+| 9 | B | 19 | F |
+|10 | U | 20 | R |
+
+### Timing diagram
+
+```
+Clock   : __↓__↓__↓__↓__↓__↓__↓__↓__↓__↓__↓__↓__↓__ ...
+RESET   : ‾‾‾‾‾‾__|___________________ ...  (2 cycles)
+Counter : 0    0    1    2    3    4   ...  19   20
+done    : 0    0    0    0    0    0   ...   0    1
+Move    : -    -    R    B    U    D   ...   R    -
+```
+
+### How to simulate
+
+Open `tb_RandMoveGen.vhd` in Vivado Simulation.  The testbench:
+1. Asserts RESET for 2 clock cycles.
+2. Prints each of the 20 moves to the Tcl console with the cube state diagram.
+3. Halts after move 20 is confirmed.
