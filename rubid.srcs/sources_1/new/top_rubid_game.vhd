@@ -29,11 +29,16 @@ ENTITY top_rubid_game IS
         -- SW(15)          : Game Mode (0 = Free Play, 1 = Challenge Mode)
 
         -- PLAYER OUTPUTS (LEDs)
-        LED : OUT STD_LOGIC_VECTOR(1 DOWNTO 0)
+        LED : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
         -- LED(7 downto 0)   : Displays the remaining time in binary -- will connect to 7-segment displays
         -- LED(10 downto 8)  : Debug LEDs showing the Sexy Move sequence state --show sexy move progress 
         -- LED(14)           : LOSE Indicator (Red)
         -- LED(15)           : WIN Indicator (Green)
+        
+        -- VGA OUTPUTS
+        hsync   : out STD_LOGIC;
+        vsync   : out STD_LOGIC;
+        rgb     : out STD_LOGIC_VECTOR(11 downto 0)
         
         -- for test!
 --        DEBUG_CUBE_STATE : out STD_LOGIC_VECTOR(71 downto 0) 
@@ -125,6 +130,18 @@ ARCHITECTURE Structural OF top_rubid_game IS
             Clk : IN STD_LOGIC;
             BTN_In : IN STD_LOGIC;
             BTN_Out : OUT STD_LOGIC);
+    END COMPONENT;
+
+    -- VGA Video Controller for displaying the Rubik's Cube
+    COMPONENT videoRubik
+        PORT (
+            clk     : IN  STD_LOGIC;
+            reset   : IN  STD_LOGIC;
+            Q_all   : IN  STD_LOGIC_VECTOR(71 downto 0);
+            hsync   : OUT STD_LOGIC;
+            vsync   : OUT STD_LOGIC;
+            rgb     : OUT STD_LOGIC_VECTOR(11 downto 0)
+        );
     END COMPONENT;
 
     -- --------------------------------------------------------------------------
@@ -270,6 +287,16 @@ BEGIN
 --        Q_all => DEBUG_CUBE_STATE,
 
         is_solved => is_solved_wire
+    );
+    
+    -- --- VGA VIDEO CONTROLLER ---
+    U_Video : videoRubik PORT MAP(
+        clk     => CLK100MHZ,
+        reset   => sys_reset,
+        Q_all   => cube_memory_out,
+        hsync   => hsync,
+        vsync   => vsync,
+        rgb     => rgb
     );
     
 --     DEBUG_CUBE_STATE <= cube_memory_out;
