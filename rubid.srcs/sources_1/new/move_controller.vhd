@@ -1,13 +1,12 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-
+-- Moors machine
 entity move_controller is
     Port ( 
            Clk          : in STD_LOGIC;
            BTN_Execute  : in STD_LOGIC;                      
-           SW_Direction : in STD_LOGIC;                      
+           SW_Direction : in STD_LOGIC;                   
            RESET, F, R, U, L, B, D : in std_logic;
-           
            S_Out        : out STD_LOGIC_VECTOR (2 downto 0); -- sent to rubid 
            Face_For_Seq : out STD_LOGIC_VECTOR (2 downto 0)  -- Sent to the Sequence Detector
            );

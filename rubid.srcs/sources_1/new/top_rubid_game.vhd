@@ -29,15 +29,17 @@ ENTITY top_rubid_game IS
         -- SW(15)          : Game Mode (0 = Free Play, 1 = Challenge Mode)
 
         -- PLAYER OUTPUTS (LEDs)
-        LED : OUT STD_LOGIC_VECTOR(1 DOWNTO 0); 
+        LED : OUT STD_LOGIC_VECTOR(15 DOWNTO 0); 
+         -- -----------------------------
+        -- LED(5 downto 0)  : Debug LEDs showing the Sexy Move sequence state --show sexy move progress
+        -- LED(13 downto 6)  : unused
+        -- LED(14)           : LOSE Indicator
+        -- LED(15)           : WIN Indicator 
+
         -- ---> ADDED FOR 7-SEGMENT <---
         SEG : OUT STD_LOGIC_VECTOR(6 DOWNTO 0); -- The 7 shapes (A through G)
         AN  : OUT STD_LOGIC_VECTOR(7 DOWNTO 0); -- The 8 digit selector anodes
-        -- -----------------------------
-        -- LED(7 downto 0)   : Displays the remaining time in binary -- will connect to 7-segment displays
-        -- LED(10 downto 8)  : Debug LEDs showing the Sexy Move sequence state --show sexy move progress 
-        -- LED(14)           : LOSE Indicator (Red)
-        -- LED(15)           : WIN Indicator (Green)
+       
         
         -- VGA OUTPUTS
         hsync   : out STD_LOGIC;
@@ -77,13 +79,13 @@ ARCHITECTURE Structural OF top_rubid_game IS
             SW_Mode : IN STD_LOGIC;         -- select mode
             Time_Is_Zero : IN STD_LOGIC;    --time out flag
             Is_Solved : IN STD_LOGIC;       --solved flag
-            Scramble_Done: in STD_LOGIC;    -- NEW: tells us when the scrambler is finished
+            Scramble_Done: in STD_LOGIC;    -- connect to scrambler 
 
             Game_Active : OUT STD_LOGIC;    -- flag to unlock move controller and start the game
             Timer_Load : OUT STD_LOGIC;     -- flag to load the initial time to timer 
-            Is_Scrambling: out STD_LOGIC;
+            Is_Scrambling: out STD_LOGIC;   -- flag for mux to switch from move controller to scrambler during the scramble phase
             LED_Win : OUT STD_LOGIC;    
-            LED_Lose : OUT STD_LOGIC);      --Tells the Scrambler to start scrambling
+            LED_Lose : OUT STD_LOGIC);     
     END COMPONENT;
 
     -- Holds remaining time, handles math, and prevents overflow.
@@ -96,6 +98,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
             Tick_1Hz : IN STD_LOGIC;                   -- minus one second pulse from the metronome
             Add_Enable : IN STD_LOGIC;                 -- flag for adding bonus time (from sexy move rewards)
             Add_Value : IN STD_LOGIC_VECTOR(7 DOWNTO 0); -- how much bonus time to add 
+
             Time_Out : OUT STD_LOGIC_VECTOR(7 DOWNTO 0); -- current remaining time
             Time_Is_Zero : OUT STD_LOGIC);              -- flag to indicate time has run out 
     END COMPONENT;
@@ -117,7 +120,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
             SW_Face : IN STD_LOGIC_VECTOR(2 DOWNTO 0);  -- Face code
             SW_Direction : IN STD_LOGIC;                -- Direction (0 = Clockwise, 1 = Counter-Clockwise) 
             Time_Bonus : OUT STD_LOGIC                 -- time bonus trigger
-            -- Debug_State : OUT STD_LOGIC_VECTOR(2 DOWNTO 0)
+            Debug_State : OUT STD_LOGIC_VECTOR(5 DOWNTO 0)
             ); 
             --for debugging: outputs the current state of the sequence detector to the LEDs
     END COMPONENT;
@@ -131,13 +134,13 @@ ARCHITECTURE Structural OF top_rubid_game IS
             is_solved : OUT STD_LOGIC);
     END COMPONENT;
 
-    -- Cleans up physical button bounces so 1 human press = exactly 1 digital pulse.
-    COMPONENT button_debouncer
-        PORT (
-            Clk : IN STD_LOGIC;
-            BTN_In : IN STD_LOGIC;
-            BTN_Out : OUT STD_LOGIC);
-    END COMPONENT;
+    -- -- Cleans up physical button bounces so 1 human press = exactly 1 digital pulse.
+    -- COMPONENT button_debouncer
+    --     PORT (
+    --         Clk : IN STD_LOGIC;
+    --         BTN_In : IN STD_LOGIC;
+    --         BTN_Out : OUT STD_LOGIC);
+    -- END COMPONENT;
 
     -- VGA Video Controller for displaying the Rubik's Cube
     COMPONENT videoRubik
@@ -198,7 +201,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
 
     -- Data routing wires
     SIGNAL S_to_Cube : STD_LOGIC_VECTOR(2 DOWNTO 0); ---connect move controller to cube
-    SIGNAL face_to_detector : STD_LOGIC_VECTOR(2 DOWNTO 0); --
+    SIGNAL face_to_detector : STD_LOGIC_VECTOR(2 DOWNTO 0); --connect move controller to sexy move 
 
     -- Master Controller state wires
     SIGNAL game_active_wire : STD_LOGIC;
@@ -230,7 +233,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
     SIGNAL current_time_wire : STD_LOGIC_VECTOR(7 DOWNTO 0); -- Carries the time from the Timer to the Display
 
 BEGIN
-
+    LED(13 DOWNTO 6) <= "0000000000"; -- Unused LEDs turned off
     -- --------------------------------------------------------------------------
     -- 4. HARDWARE LOGIC & SECURITY GATES
     -- --------------------------------------------------------------------------
@@ -308,8 +311,8 @@ BEGIN
         
         Game_Active => game_active_wire,
         Timer_Load => timer_load_wire,
-        LED_Win => LED(1),
-        LED_Lose => LED(0)
+        LED_Win => LED(15),
+        LED_Lose => LED(14)
     );
 
     -- ---> ADDED: The Hardware Scrambler <---
@@ -372,7 +375,7 @@ BEGIN
         SW_Face => face_to_detector,
         SW_Direction => SW(6), -- Updated to SW6
         Time_Bonus => time_bonus_wire
-        -- Debug_State => LED(10 DOWNTO 8)
+        Debug_State => LED(5 DOWNTO 0)
     );
 
     -- --- RUBIK'S CUBE MEMORY ---

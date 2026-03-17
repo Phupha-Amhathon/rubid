@@ -9,8 +9,8 @@ entity sexy_move_detector is
         SW_Direction : in STD_LOGIC;                      
         Time_Bonus   : out STD_LOGIC;                     
         
-        -- NEW: 3-bit output to connect to your physical LEDs
-        Debug_State  : out STD_LOGIC_VECTOR(2 downto 0)   
+        -- for debugging 
+        Debug_State  : out STD_LOGIC_VECTOR(5 downto 0)   
     );
 end sexy_move_detector;
 
@@ -19,25 +19,25 @@ architecture Behavioral of sexy_move_detector is
     type state_type is (IDLE, GOT_R, GOT_U, GOT_R_PRIME, GOT_U_PRIME);
     signal current_state, next_state : state_type := IDLE;
 
+    -- execute button is press button, so it can remain 1 for multiple cycles. We only want to trigger on the transition from 0 to 1, so we need to store the previous state of the button.
     signal btn_prev  : STD_LOGIC := '0';
     signal move_tick : STD_LOGIC := '0';
 
 begin
 
-    -- ==========================================
-    -- DEBUG FLAG: Route the current state to the output
-    -- ==========================================
+    -- for debugging:
     with current_state select
-        Debug_State <= "000" when IDLE,          -- 0 LEDs: Waiting for start
-                       "001" when GOT_R,         -- 1 LED:  R is successful
-                       "010" when GOT_U,         -- 2 LEDs: U is successful (binary 2)
-                       "011" when GOT_R_PRIME,   -- 3 LEDs: R' is successful (binary 3)
-                       "100" when GOT_U_PRIME,   -- 1 LED:  U' successful! (binary 4)
-                       "111" when others;        -- Error state indicator
+        Debug_State <= "000001" when IDLE,          -- 0 LEDs: Waiting for start
+                       "000010" when GOT_R,         -- 1 LED:  R is successful
+                       "000100" when GOT_U,         -- 2 LEDs: U is successful (binary 2)
+                       "001000" when GOT_R_PRIME,   -- 3 LEDs: R' is successful (binary 3)
+                       "010000" when GOT_U_PRIME,   -- 1 LED:  U' successful! (binary 4)
+                       "100000" when others;        -- Error state indicator
 
     -- ==========================================
     -- 1. Synchronous Process
     -- ==========================================
+    --ensure one click one exicute 
     process(Clk)
     begin
         if falling_edge(Clk) then
