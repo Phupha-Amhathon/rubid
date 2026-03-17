@@ -50,13 +50,13 @@ architecture Behavioral of videoRubik is
     function get_color(color_code : std_logic_vector(2 downto 0)) return std_logic_vector is
     begin
         case color_code is
-            when "000" => return X"FFF";
-            when "001" => return X"0F0";
-            when "010" => return X"F80";
-            when "011" => return X"00F";
-            when "100" => return X"F00";
-            when "101" => return X"FF0";
-            when others => return X"000";
+            when "000" => return X"FF0"; -- yellow  (up)
+            when "001" => return X"0B0"; -- green   (front)
+            when "010" => return X"F00"; -- red     (left)
+            when "011" => return X"00B"; -- blue    (right)
+            when "100" => return X"FFF"; -- white   (down)
+            when "101" => return X"F60"; -- orange  (back)
+            when others => return X"000"; -- Default to Black
         end case;
     end function;
     

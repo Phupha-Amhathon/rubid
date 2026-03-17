@@ -41,8 +41,8 @@ entity RubidMark1 is
            D : in STD_LOGIC;
            Q : out STD_LOGIC_VECTOR (71 downto 0);
            Clk : in std_logic
-
            );
+           
 end RubidMark1;
 
 architecture Structural of RubidMark1 is
