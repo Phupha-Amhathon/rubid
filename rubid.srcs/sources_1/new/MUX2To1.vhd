@@ -1,23 +1,3 @@
-----------------------------------------------------------------------------------
--- Company: Knon Kaen University
--- Engineer: Phupha Amhathon
--- 
--- Create Date: 03/01/2026 01:43:23 PM
--- Design Name: two to one multiplexer
--- Module Name: MUX2To1 - gate_level
--- Project Name: rubid
--- Target Devices: nexty A7 100T
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
-
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
