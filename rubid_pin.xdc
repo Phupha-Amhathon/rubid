@@ -34,13 +34,6 @@ set_property -dict {PACKAGE_PIN M18 IOSTANDARD LVCMOS33} [get_ports {BTNU}]
 set_property -dict {PACKAGE_PIN P18 IOSTANDARD LVCMOS33} [get_ports {BTND}]
 
 # ------------------------------------------------------------------------------
-# 5. TEMPERATURE SENSOR ADT7420 (The Chaos Source)
-# ------------------------------------------------------------------------------
-# These pins provide the thermal noise for your Tangled MUX logic
-set_property -dict {PACKAGE_PIN C14 IOSTANDARD LVCMOS33} [get_ports {TMP_SCL}]
-set_property -dict {PACKAGE_PIN C15 IOSTANDARD LVCMOS33} [get_ports {TMP_SDA}]
-
-# ------------------------------------------------------------------------------
 # 6. PLAYER INPUTS (16 Switches)
 # ------------------------------------------------------------------------------
 set_property -dict {PACKAGE_PIN V10 IOSTANDARD LVCMOS33} [get_ports {SW[0]}]  ; # Face D
