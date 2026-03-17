@@ -9,31 +9,41 @@ entity videoRubik is
         Q_all   : in  STD_LOGIC_VECTOR(71 downto 0);
         hsync   : out STD_LOGIC;
         vsync   : out STD_LOGIC;
-        rgb     : out STD_LOGIC_VECTOR(11 downto 0)
+        rgb     : out STD_LOGIC_VECTOR(11 downto 0) -- 12-bit color output for Nexys A7 VGA
     );
 end videoRubik;
 
 architecture Behavioral of videoRubik is
+    -- Internal wiring from vga_sync
     signal hsync_int, vsync_int, video_on, p_tick : STD_LOGIC;
     signal hPos, vPos : STD_LOGIC_VECTOR(9 downto 0);
     
+    -- Graphic Constants: Each facelet is 50x50 pixels, with a 4-pixel border/gap
     constant sqSize : integer := 50;
     constant gap : integer := 4;
-    constant faceSize : integer := 104;
+    constant faceSize : integer := 104; -- (50 * 2) + 4
     
-    constant uStartX : integer := 160;
-    constant uStartY : integer := 30;
-    constant lStartX : integer := 4;
-    constant lStartY : integer := 138;
-    constant fStartX : integer := 112;
-    constant fStartY : integer := 138;
-    constant rStartX : integer := 220;
-    constant rStartY : integer := 138;
-    constant bStartX : integer := 328;
-    constant bStartY : integer := 138;
-    constant dStartX : integer := 160;
-    constant dStartY : integer := 246;
+    -- ROW 0: [ x, U, x, x ]
+    constant uStartX : integer := 214;
+    constant uStartY : integer := 80;
     
+    -- ROW 1: [ L, F, R, B ]
+    constant lStartX : integer := 106;
+    constant lStartY : integer := 188;
+    
+    constant fStartX : integer := 214; -- Matches U and D perfectly!
+    constant fStartY : integer := 188;
+    
+    constant rStartX : integer := 322;
+    constant rStartY : integer := 188;
+    
+    constant bStartX : integer := 430;
+    constant bStartY : integer := 188;
+    
+    -- ROW 2: [ x, D, x, x ]
+    constant dStartX : integer := 214;
+    constant dStartY : integer := 296;
+
     component vga_sync is
         Port (
             clk     : in  STD_LOGIC;
@@ -47,20 +57,22 @@ architecture Behavioral of videoRubik is
         );
     end component;
     
+    -- Converts  3-bit binary memory into physical 12-bit HEX colors
     function get_color(color_code : std_logic_vector(2 downto 0)) return std_logic_vector is
     begin
         case color_code is
-            when "000" => return X"FF0"; -- yellow  (up)
-            when "001" => return X"0B0"; -- green   (front)
-            when "010" => return X"F00"; -- red     (left)
-            when "011" => return X"00B"; -- blue    (right)
+            when "000" => return X"0DE"; -- yellow  (up)
+            when "001" => return X"5D9"; -- green   (front)
+            when "010" => return X"53A"; -- red     (left)
+            when "011" => return X"B63"; -- blue    (right)
             when "100" => return X"FFF"; -- white   (down)
-            when "101" => return X"F60"; -- orange  (back)
-            when others => return X"000"; -- Default to Black
+            when "101" => return X"49E"; -- orange  (back)
+            when others => return X"666"; -- Default to dark gray
         end case;
     end function;
     
 begin
+    -- Drop the driver chip onto the board
     vga_sync_inst : vga_sync
         port map (
             clk => clk,
@@ -73,15 +85,18 @@ begin
             y => vPos
         );
     
+    -- Route sync signals to output pins
     hsync <= hsync_int;
     vsync <= vsync_int;
     
+    -- The Painting Process
     process(p_tick)
         variable h, v : integer;
         variable sqX, sqY : integer;
         variable localX, localY : integer;
         variable facelet_idx : integer;
     begin
+        -- Only update the color exactly when the 25MHz pixel clock ticks
         if rising_edge(p_tick) then
             if video_on = '0' then
                 rgb <= (others => '0');
@@ -89,8 +104,12 @@ begin
                 h := to_integer(unsigned(hPos));
                 v := to_integer(unsigned(vPos));
                 
-                rgb <= X"222";
-                
+                rgb <= X"222"; -- Background color (black)
+
+                -- =========================================================
+                -- COLLISION DETECTION: UP FACE
+                -- =========================================================
+                -- Check if the current pixel is inside the UP face boundary
                 if h >= uStartX and h < uStartX + faceSize and
                    v >= uStartY and v < uStartY + faceSize then
                     localX := h - uStartX;

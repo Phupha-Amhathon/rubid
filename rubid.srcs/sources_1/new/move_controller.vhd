@@ -8,7 +8,7 @@ entity move_controller is
            SW_Direction : in STD_LOGIC;                      
            RESET, F, R, U, L, B, D : in std_logic;
            
-           S_Out        : out STD_LOGIC_VECTOR (2 downto 0); 
+           S_Out        : out STD_LOGIC_VECTOR (2 downto 0); -- sent to rubid 
            Face_For_Seq : out STD_LOGIC_VECTOR (2 downto 0)  -- Sent to the Sequence Detector
            );
 end move_controller;
@@ -18,7 +18,7 @@ architecture Behavioral of move_controller is
     component moveEncoder is
       Port (
         RESET, F, R, U, L, B, D : in std_logic;
-        Y : out std_logic_vector(2 downto 0) 
+        Y : out std_logic_vector(2 downto 0) --  000 means hold , 111 means reset 
       );
     end component;
     

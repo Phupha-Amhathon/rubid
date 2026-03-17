@@ -1,65 +1,74 @@
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
 
-entity RubidMark2 is
-    Port ( 
-        S         : in STD_LOGIC_VECTOR (2 downto 0);
-        Clk       : in STD_LOGIC;
-        Q_all     : out STD_LOGIC_VECTOR (71 downto 0);
-        
-        -- The brand new flag for the Game Controller
-        is_solved : out STD_LOGIC
+ENTITY RubidMark2 IS
+    PORT (
+        S : IN STD_LOGIC_VECTOR (2 DOWNTO 0);
+        Clk : IN STD_LOGIC;
+        Q_all : OUT STD_LOGIC_VECTOR (71 DOWNTO 0);
+        is_solved : OUT STD_LOGIC
     );
-end RubidMark2;
+END RubidMark2;
 
-architecture Behavioral of RubidMark2 is
+ARCHITECTURE Behavioral OF RubidMark2 IS
 
-    -- 1. Declare your original working Rubid module as a component
-    component Rubid is
-        Port ( 
-            S     : in STD_LOGIC_VECTOR (2 downto 0);
-            Clk   : in STD_LOGIC;
-            Q_all : out STD_LOGIC_VECTOR (71 downto 0)
+    COMPONENT Rubid IS
+        PORT (
+            S : IN STD_LOGIC_VECTOR (2 DOWNTO 0);
+            Clk : IN STD_LOGIC;
+            Q_all : OUT STD_LOGIC_VECTOR (71 DOWNTO 0)
         );
-    end component;
+    END COMPONENT;
 
-    -- 2. Internal signal to catch the 72-bit output from the core cube
-    signal q_internal : STD_LOGIC_VECTOR(71 downto 0);
+    SIGNAL q_internal : STD_LOGIC_VECTOR(71 DOWNTO 0);
+    SIGNAL up_is_solid : STD_LOGIC;
+    SIGNAL front_is_solid : STD_LOGIC;
+    SIGNAL left_is_solid : STD_LOGIC;
+    SIGNAL right_is_solid : STD_LOGIC;
+    SIGNAL back_is_solid : STD_LOGIC;
+    SIGNAL down_is_solid : STD_LOGIC;
 
-    -- 3. Define the winning colors for each face (matching your Rubid init values)
-    constant c_up    : std_logic_vector(2 downto 0) := "000";
-    constant c_front : std_logic_vector(2 downto 0) := "001";
-    constant c_left  : std_logic_vector(2 downto 0) := "010";
-    constant c_right : std_logic_vector(2 downto 0) := "011";
-    constant c_down  : std_logic_vector(2 downto 0) := "100";
-    constant c_back  : std_logic_vector(2 downto 0) := "101";
+BEGIN
 
-begin
-
-    -- ==========================================
-    -- INSTANTIATE THE ORIGINAL CUBE
-    -- ==========================================
-    Core_Cube: Rubid port map(
-        S     => S,
-        Clk   => Clk,
-        Q_all => q_internal  -- Catch the output in our internal wire
+    Core_Cube : Rubid PORT MAP(
+        S => S,
+        Clk => Clk,
+        Q_all => q_internal
     );
 
-    -- Pass the internal wire straight through to the outside world
     Q_all <= q_internal;
 
-    -- ==========================================
-    -- WIN CONDITION LOGIC (Combinatorial Slicing)
-    -- ==========================================
-    -- We concatenate the constant color 4 times to create a 12-bit expected block,
-    -- and compare it directly to the 12-bit slice of the cube's output.
-    is_solved <= '1' when (
-        (q_internal(71 downto 60) = c_up & c_up & c_up & c_up)       and
-        (q_internal(59 downto 48) = c_front & c_front & c_front & c_front) and
-        (q_internal(47 downto 36) = c_left & c_left & c_left & c_left)     and
-        (q_internal(35 downto 24) = c_right & c_right & c_right & c_right)   and
-        (q_internal(23 downto 12) = c_back & c_back & c_back & c_back)     and
-        (q_internal(11 downto  0) = c_down & c_down & c_down & c_down)
-    ) else '0';
+    -- 1. UP Face (Bits 71 to 60)
+    up_is_solid <= '1' WHEN (q_internal(71 DOWNTO 69) = q_internal(68 DOWNTO 66)) AND
+        (q_internal(71 DOWNTO 69) = q_internal(65 DOWNTO 63)) AND
+        (q_internal(71 DOWNTO 69) = q_internal(62 DOWNTO 60)) ELSE
+        '0';
+    -- 2. FRONT Face (Bits 59 to 48)
+    front_is_solid <= '1' WHEN (q_internal(59 DOWNTO 57) = q_internal(56 DOWNTO 54)) AND
+        (q_internal(59 DOWNTO 57) = q_internal(53 DOWNTO 51)) AND
+        (q_internal(59 DOWNTO 57) = q_internal(50 DOWNTO 48)) ELSE
+        '0';
+    -- 3. LEFT Face (Bits 47 to 36)
+    left_is_solid <= '1' WHEN (q_internal(47 DOWNTO 45) = q_internal(44 DOWNTO 42)) AND
+        (q_internal(47 DOWNTO 45) = q_internal(41 DOWNTO 39)) AND
+        (q_internal(47 DOWNTO 45) = q_internal(38 DOWNTO 36)) ELSE
+        '0';
+    -- 4. RIGHT Face (Bits 35 to 24)
+    right_is_solid <= '1' WHEN (q_internal(35 DOWNTO 33) = q_internal(32 DOWNTO 30)) AND
+        (q_internal(35 DOWNTO 33) = q_internal(29 DOWNTO 27)) AND
+        (q_internal(35 DOWNTO 33) = q_internal(26 DOWNTO 24)) ELSE
+        '0';
+    -- 5. BACK Face (Bits 23 to 12)
+    back_is_solid <= '1' WHEN (q_internal(23 DOWNTO 21) = q_internal(20 DOWNTO 18)) AND
+        (q_internal(23 DOWNTO 21) = q_internal(17 DOWNTO 15)) AND
+        (q_internal(23 DOWNTO 21) = q_internal(14 DOWNTO 12)) ELSE
+        '0';
+    -- 6. DOWN Face (Bits 11 to 0)
+    down_is_solid <= '1' WHEN (q_internal(11 DOWNTO 9) = q_internal(8 DOWNTO 6)) AND
+        (q_internal(11 DOWNTO 9) = q_internal(5 DOWNTO 3)) AND
+        (q_internal(11 DOWNTO 9) = q_internal(2 DOWNTO 0)) ELSE
+        '0';
+    is_solved <= up_is_solid AND front_is_solid AND left_is_solid AND
+        right_is_solid AND back_is_solid AND down_is_solid;
 
-end Behavioral;
+END Behavioral;

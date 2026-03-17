@@ -11,10 +11,12 @@ entity master_game_controller is
         -- Inputs from other modules
         Time_Is_Zero : in STD_LOGIC;                      -- From the Countdown Timer
         Is_Solved    : in STD_LOGIC;                      -- From RubidMark2
+        Scramble_Done: in STD_LOGIC;
         
         -- Control Outputs to other modules
         Game_Active  : out STD_LOGIC;                     -- Enables the Move Controller
         Timer_Load   : out STD_LOGIC;                     -- Tells the Timer to grab switch values
+        Is_Scrambling: out STD_LOGIC;               -- NEW: Tells the Scrambler to start scrambling (Challenge Mode only)   
         
         -- LED Status Flags
         LED_Win      : out STD_LOGIC;
@@ -28,6 +30,7 @@ end master_game_controller;
         INIT, 
         FREE_MODE, 
         CHALLENGE_LOAD, 
+        CHALLENGE_SCRAMBLE,
         CHALLENGE_PLAY, 
         GAME_OVER_WIN, 
         GAME_OVER_LOSE
@@ -59,6 +62,7 @@ begin
         next_state  <= current_state;
         Game_Active <= '0';
         Timer_Load  <= '0';
+        Is_Scrambling <= '0';
         LED_Win     <= '0';
         LED_Lose    <= '0';
 
@@ -95,7 +99,16 @@ begin
             -- --------------------------------------
             when CHALLENGE_LOAD =>
                 Timer_Load <= '1';            -- Send exactly one pulse to Scorekeeper
-                next_state <= CHALLENGE_PLAY; -- Immediately jump to gameplay
+                next_state <= CHALLENGE_SCRAMBLE; -- Immediately jump to gameplay
+
+            when CHALLENGE_SCRAMBLE =>
+                Is_Scrambling <= '1'; -- Tells the MUX to switch tracks and Scrambler to start
+                Game_Active   <= '0'; -- Ensure the player's buttons stay locked
+                
+                -- Wait here until the scrambler chip finishes its job
+                if Scramble_Done = '1' then
+                    next_state <= CHALLENGE_PLAY;
+                end if;
 
             when CHALLENGE_PLAY =>
                 Game_Active <= '1'; -- Unlock the cube controls

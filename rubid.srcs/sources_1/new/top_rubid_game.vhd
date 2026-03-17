@@ -29,7 +29,11 @@ ENTITY top_rubid_game IS
         -- SW(15)          : Game Mode (0 = Free Play, 1 = Challenge Mode)
 
         -- PLAYER OUTPUTS (LEDs)
-        LED : OUT STD_LOGIC_VECTOR(1 DOWNTO 0);
+        LED : OUT STD_LOGIC_VECTOR(1 DOWNTO 0); 
+        -- ---> ADDED FOR 7-SEGMENT <---
+        SEG : OUT STD_LOGIC_VECTOR(6 DOWNTO 0); -- The 7 shapes (A through G)
+        AN  : OUT STD_LOGIC_VECTOR(7 DOWNTO 0); -- The 8 digit selector anodes
+        -- -----------------------------
         -- LED(7 downto 0)   : Displays the remaining time in binary -- will connect to 7-segment displays
         -- LED(10 downto 8)  : Debug LEDs showing the Sexy Move sequence state --show sexy move progress 
         -- LED(14)           : LOSE Indicator (Red)
@@ -73,10 +77,13 @@ ARCHITECTURE Structural OF top_rubid_game IS
             SW_Mode : IN STD_LOGIC;         -- select mode
             Time_Is_Zero : IN STD_LOGIC;    --time out flag
             Is_Solved : IN STD_LOGIC;       --solved flag
+            Scramble_Done: in STD_LOGIC;    -- NEW: tells us when the scrambler is finished
+
             Game_Active : OUT STD_LOGIC;    -- flag to unlock move controller and start the game
             Timer_Load : OUT STD_LOGIC;     -- flag to load the initial time to timer 
+            Is_Scrambling: out STD_LOGIC;
             LED_Win : OUT STD_LOGIC;    
-            LED_Lose : OUT STD_LOGIC);
+            LED_Lose : OUT STD_LOGIC);      --Tells the Scrambler to start scrambling
     END COMPONENT;
 
     -- Holds remaining time, handles math, and prevents overflow.
@@ -143,6 +150,40 @@ ARCHITECTURE Structural OF top_rubid_game IS
             rgb     : OUT STD_LOGIC_VECTOR(11 downto 0)
         );
     END COMPONENT;
+    
+    component seven_segment_controller is
+    Port (
+        Clk      : in STD_LOGIC;
+        Reset    : in STD_LOGIC;
+        Time_In  : in STD_LOGIC_VECTOR(7 downto 0);  -- The 8-bit binary timer (0 to 255)
+        
+        -- Physical outputs to the Nexys A7 Board (Active Low)
+        SEG      : out STD_LOGIC_VECTOR(6 downto 0); -- A, B, C, D, E, F, G
+        AN       : out STD_LOGIC_VECTOR(7 downto 0)  -- The 8 digit Anodes
+    );
+    end component;
+
+    --for scrambling 
+    COMPONENT hardware_scrambler
+        PORT ( 
+            Clk            : in STD_LOGIC;
+            Reset          : in STD_LOGIC;
+            Start_Scramble : in STD_LOGIC;
+            Moves_Needed   : in STD_LOGIC_VECTOR(3 downto 0);
+            S_Out          : out STD_LOGIC_VECTOR(2 downto 0);
+            Scramble_Done  : out STD_LOGIC
+        );
+    END COMPONENT;
+
+    -- The 3-bit Train Track Switch
+    COMPONENT mux_3bit_2to1
+        PORT (
+            Sel : in STD_LOGIC;
+            In0 : in STD_LOGIC_VECTOR(2 downto 0);
+            In1 : in STD_LOGIC_VECTOR(2 downto 0);
+            Y   : out STD_LOGIC_VECTOR(2 downto 0)
+        );
+    END COMPONENT;
 
     -- --------------------------------------------------------------------------
     -- 3. INTERNAL SIGNALS (The Copper Traces on the Motherboard)
@@ -173,8 +214,21 @@ ARCHITECTURE Structural OF top_rubid_game IS
     SIGNAL combined_execute : STD_LOGIC;
 
     SIGNAL cube_memory_out : STD_LOGIC_VECTOR(71 DOWNTO 0);
-
     SIGNAL auto_boot_reset : STD_LOGIC;
+
+    -- ---> ADDED: Wires for Scrambler and MUX <---
+    SIGNAL is_scrambling         : STD_LOGIC;
+    SIGNAL scr_done_wire         : STD_LOGIC;
+    SIGNAL scr_s_out             : STD_LOGIC_VECTOR(2 DOWNTO 0);
+    SIGNAL move_controller_S_Out : STD_LOGIC_VECTOR(2 DOWNTO 0);
+    -- --------------------------------------------
+
+    --sys scramble amout
+    signal scramble_moves_needed : STD_LOGIC_VECTOR(3 downto 0):="0001";
+    
+    -- ---> ADDED FOR 7-SEGMENT <---
+    SIGNAL current_time_wire : STD_LOGIC_VECTOR(7 DOWNTO 0); -- Carries the time from the Timer to the Display
+
 BEGIN
 
     -- --------------------------------------------------------------------------
@@ -202,6 +256,7 @@ BEGIN
     -- GATE 3: The Combined Trigger
     -- Wakes up the Move Controller if a normal move is made, OR if the boot/reset triggers.
     combined_execute <= secure_btn_exec OR auto_boot_reset;
+
     -- --------------------------------------------------------------------------
     -- 5. PORT MAPPING (Soldering the chips to the board)
     -- --------------------------------------------------------------------------
@@ -228,7 +283,11 @@ BEGIN
         SW_Direction => SW(6), -- Now safely on SW6
         D => SW(0), B => SW(1), L => SW(2), U => SW(3), R => SW(4), F => SW(5),
         RESET => auto_boot_reset, -- the merged wire so it resets on button press OR system boot!
-        S_Out => S_to_Cube,
+        
+        -- ---> CHANGED: Route output to the MUX wire, not the Cube <---
+        S_Out => move_controller_S_Out,
+        -- -------------------------------------------------------------
+        
         Face_For_Seq => face_to_detector
     );
 
@@ -241,11 +300,37 @@ BEGIN
         Time_Is_Zero => time_is_zero_wire,
 --        Is_Solved => is_solved_wire,
         Is_Solved => '0', -- by pass for test 
+        
+        -- ---> CHANGED: Wired the new scrambling pins <---
+        Scramble_Done => scr_done_wire,
+        Is_Scrambling => is_scrambling,
+        -- ------------------------------------------------
+        
         Game_Active => game_active_wire,
         Timer_Load => timer_load_wire,
         LED_Win => LED(1),
         LED_Lose => LED(0)
     );
+
+    -- ---> ADDED: The Hardware Scrambler <---
+    U_Scrambler : hardware_scrambler PORT MAP(
+        Clk            => CLK100MHZ,
+        Reset          => sys_reset,
+        Start_Scramble => is_scrambling,
+        Moves_Needed   => scramble_moves_needed,
+        S_Out          => scr_s_out,
+        Scramble_Done  => scr_done_wire
+    );
+    -- ---------------------------------------
+
+    -- ---> ADDED: The Datapath MUX <---
+    U_Datapath_Mux : mux_3bit_2to1 PORT MAP(
+        Sel => is_scrambling,
+        In0 => move_controller_S_Out,
+        In1 => scr_s_out,
+        Y   => S_to_Cube
+    );
+    -- ---------------------------------
 
     -- --- METRONOME ---
     U_Heartbeat : one_second_timer GENERIC MAP(CLK_FREQ => 100_000_000)
@@ -258,15 +343,26 @@ BEGIN
     -- --- SCOREKEEPER ---
     U_Timer : countdown_timer GENERIC MAP(MAX_TIME => 255)
     PORT MAP(
-        Clk => CLK100MHZ,
-        Load_Enable => timer_load_wire,
-        Time_In => SW(14 DOWNTO 7), -- Perfect! Full 8-bit input from switches
-        Tick_1Hz => tick_1hz_wire,
-        Add_Enable => time_bonus_wire,
-        Add_Value => "00000101", -- Hardcoded +5 seconds bonus
---        Time_Out => LED(7 DOWNTO 0),
-        Time_Out => open,
+        Clk          => CLK100MHZ,
+        Load_Enable  => timer_load_wire,
+        Time_In      => SW(14 DOWNTO 7), 
+        Tick_1Hz     => tick_1hz_wire,
+        Add_Enable   => time_bonus_wire,
+        Add_Value    => "00000101", 
+        
+        -- ---> CHANGED: Connect to our new wire! <---
+        Time_Out     => current_time_wire, 
+        
         Time_Is_Zero => time_is_zero_wire
+    );
+
+    -- ---> ADDED FOR 7-SEGMENT <---
+    U_SevenSeg : seven_segment_controller PORT MAP(
+        Clk     => CLK100MHZ,
+        Reset   => sys_reset,
+        Time_In => current_time_wire, -- Reads the time from the Scorekeeper
+        SEG     => SEG,               -- Goes out to the physical board pins
+        AN      => AN                 -- Goes out to the physical board pins
     );
 
     -- --- SEQUENCE DETECTOR ---
@@ -299,5 +395,5 @@ BEGIN
         rgb     => rgb
     );
     
---     DEBUG_CUBE_STATE <= cube_memory_out;
+--    DEBUG_CUBE_STATE <= cube_memory_out;
 END Structural;
