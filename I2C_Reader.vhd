@@ -91,7 +91,7 @@ begin
                         when IDLE =>
                             state <= START_COND;
                         when START_COND =>
-                            shift_reg <= "10010111"; -- 0x4B (ADT7420 Address) + Read bit
+                            shift_reg <= "10010111"; -- 0x97 = (0x4B << 1) + Read bit
                             bit_cnt <= 7;
                             state <= SEND_ADDR;
                         when SEND_ADDR =>
