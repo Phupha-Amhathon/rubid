@@ -119,7 +119,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
             BTN_Execute : IN STD_LOGIC; --synced 
             SW_Face : IN STD_LOGIC_VECTOR(2 DOWNTO 0);  -- Face code
             SW_Direction : IN STD_LOGIC;                -- Direction (0 = Clockwise, 1 = Counter-Clockwise) 
-            Time_Bonus : OUT STD_LOGIC                 -- time bonus trigger
+            Time_Bonus : OUT STD_LOGIC;                 -- time bonus trigger
             Debug_State : OUT STD_LOGIC_VECTOR(5 DOWNTO 0)
             ); 
             --for debugging: outputs the current state of the sequence detector to the LEDs
@@ -135,12 +135,12 @@ ARCHITECTURE Structural OF top_rubid_game IS
     END COMPONENT;
 
     -- -- Cleans up physical button bounces so 1 human press = exactly 1 digital pulse.
-    -- COMPONENT button_debouncer
-    --     PORT (
-    --         Clk : IN STD_LOGIC;
-    --         BTN_In : IN STD_LOGIC;
-    --         BTN_Out : OUT STD_LOGIC);
-    -- END COMPONENT;
+    COMPONENT button_debouncer
+        PORT (
+            Clk : IN STD_LOGIC;
+            BTN_In : IN STD_LOGIC;
+            BTN_Out : OUT STD_LOGIC);
+    END COMPONENT;
 
     -- VGA Video Controller for displaying the Rubik's Cube
     COMPONENT videoRubik
@@ -233,7 +233,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
     SIGNAL current_time_wire : STD_LOGIC_VECTOR(7 DOWNTO 0); -- Carries the time from the Timer to the Display
 
 BEGIN
-    LED(13 DOWNTO 6) <= "0000000000"; -- Unused LEDs turned off
+    LED(13 DOWNTO 6) <= "00000000"; -- Unused LEDs turned off
     -- --------------------------------------------------------------------------
     -- 4. HARDWARE LOGIC & SECURITY GATES
     -- --------------------------------------------------------------------------
@@ -264,20 +264,20 @@ BEGIN
     -- 5. PORT MAPPING (Soldering the chips to the board)
     -- --------------------------------------------------------------------------
 
-    -- --- DEBOUNCERS ---
---    U_Debounce_Exec : button_debouncer PORT MAP(
---        Clk => CLK100MHZ, BTN_In => BTNC, BTN_Out => clean_btn_exec
---    );
---    U_Debounce_Start : button_debouncer PORT MAP(
---        Clk => CLK100MHZ, BTN_In => BTNU, BTN_Out => clean_btn_start
---    );
---    U_Debounce_ResetCube : button_debouncer PORT MAP(
---        Clk => CLK100MHZ, BTN_In => BTND, BTN_Out => clean_btn_reset_cube
---    );
+    --- DEBOUNCERS ---
+   U_Debounce_Exec : button_debouncer PORT MAP(
+       Clk => CLK100MHZ, BTN_In => BTNC, BTN_Out => clean_btn_exec
+   );
+   U_Debounce_Start : button_debouncer PORT MAP(
+       Clk => CLK100MHZ, BTN_In => BTNU, BTN_Out => clean_btn_start
+   );
+   U_Debounce_ResetCube : button_debouncer PORT MAP(
+       Clk => CLK100MHZ, BTN_In => BTND, BTN_Out => clean_btn_reset_cube
+   );
       -- DIRECT CONNECTION FOR SIMULATION ONLY:
-        clean_btn_exec       <= BTNC;
-        clean_btn_start      <= BTNU;
-        clean_btn_reset_cube <= BTND;
+        -- clean_btn_exec       <= BTNC;
+        -- clean_btn_start      <= BTNU;
+        -- clean_btn_reset_cube <= BTND;
 
     -- --- MOVE CONTROLLER ---
     U_Move_Controller : move_controller PORT MAP(
@@ -301,13 +301,11 @@ BEGIN
         BTN_Start => clean_btn_start,
         SW_Mode => SW(15),
         Time_Is_Zero => time_is_zero_wire,
---        Is_Solved => is_solved_wire,
-        Is_Solved => '0', -- by pass for test 
+       Is_Solved => is_solved_wire,
+        -- Is_Solved => '0', -- by pass for test 
         
-        -- ---> CHANGED: Wired the new scrambling pins <---
         Scramble_Done => scr_done_wire,
         Is_Scrambling => is_scrambling,
-        -- ------------------------------------------------
         
         Game_Active => game_active_wire,
         Timer_Load => timer_load_wire,
@@ -374,7 +372,7 @@ BEGIN
         BTN_Execute => secure_btn_exec, -- Only reads normal moves (ignores resets!)
         SW_Face => face_to_detector,
         SW_Direction => SW(6), -- Updated to SW6
-        Time_Bonus => time_bonus_wire
+        Time_Bonus => time_bonus_wire,
         Debug_State => LED(5 DOWNTO 0)
     );
 
