@@ -10,24 +10,25 @@ end face_checker;
 
 architecture Dataflow of face_checker is
 
-    signal match_1_and_2 : STD_LOGIC;
-    signal match_1_and_3 : STD_LOGIC;
-    signal match_1_and_4 : STD_LOGIC;
+    signal match_1bit : STD_LOGIC;
+    signal match_2bit : STD_LOGIC;
+    signal match_3bit : STD_LOGIC;
 
 begin
+    --0 1 2 | 3 4 5 
+    --6 7 8 | 9 10 11 
+    match_1bit <= (Face_In(0) xnor Face_In(3)) and 
+                     (Face_In(0) xnor Face_In(6)) and 
+                     (Face_In(0)  xnor Face_In(9));
 
-    match_1_and_2 <= (Face_In(11) xnor Face_In(8)) and 
-                     (Face_In(10) xnor Face_In(7)) and 
-                     (Face_In(9)  xnor Face_In(6));
+    match_2bit <= (Face_In(1) xnor Face_In(4)) and 
+                     (Face_In(1) xnor Face_In(7)) and 
+                     (Face_In(1)  xnor Face_In(10));
 
-    match_1_and_3 <= (Face_In(11) xnor Face_In(5)) and 
-                     (Face_In(10) xnor Face_In(4)) and 
-                     (Face_In(9)  xnor Face_In(3));
+    match_3bit <= (Face_In(2) xnor Face_In(5)) and 
+                     (Face_In(2) xnor Face_In(8)) and 
+                     (Face_In(2)  xnor Face_In(11));
 
-    match_1_and_4 <= (Face_In(11) xnor Face_In(2)) and 
-                     (Face_In(10) xnor Face_In(1)) and 
-                     (Face_In(9)  xnor Face_In(0));
-
-    Is_Solid <= match_1_and_2 and match_1_and_3 and match_1_and_4;
+    Is_Solid <= match_1bit and match_2bit and match_3bit;
 
 end Dataflow;
