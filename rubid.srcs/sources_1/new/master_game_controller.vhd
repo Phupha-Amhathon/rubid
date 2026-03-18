@@ -29,6 +29,7 @@ end master_game_controller;
     type game_state_type is (
         INIT, 
         FREE_MODE, 
+        CHALLENGE_TIME_INPUT,
         CHALLENGE_LOAD, 
         CHALLENGE_SCRAMBLE,
         CHALLENGE_PLAY, 
@@ -37,14 +38,18 @@ end master_game_controller;
     );
     signal current_state, next_state : game_state_type := INIT;
 
-begin
+    signal btn_start_prev : STD_LOGIC := '0';
+    signal start_tick     : STD_LOGIC := '0';
 
+begin
+    start_tick <= BTN_Start and (not btn_start_prev);
     -- ==========================================
     -- 1. Synchronous State Register (Falling Edge)
     -- ==========================================
     process(Clk)
     begin
         if falling_edge(Clk) then
+            btn_start_prev <= BTN_Start;
             if Reset = '1' then
                 current_state <= INIT;
             else
@@ -56,7 +61,7 @@ begin
     -- ==========================================
     -- 2. Combinatorial Next State & Output Logic
     -- ==========================================
-    process(current_state, BTN_Start, SW_Mode, Time_Is_Zero, Is_Solved)
+    process(current_state, BTN_Start, SW_Mode, Time_Is_Zero, Is_Solved, start_tick, Scramble_Done)
     begin
         -- Default output states (prevents latches)
         next_state  <= current_state;
@@ -73,11 +78,11 @@ begin
             -- --------------------------------------
             when INIT =>
                 -- Wait for the player to press Start
-                if BTN_Start = '1' then
+                if start_tick = '1' then
                     if SW_Mode = '0' then
                         next_state <= FREE_MODE;
                     else
-                        next_state <= CHALLENGE_LOAD;
+                        next_state <= CHALLENGE_TIME_INPUT;
                     end if;
                 end if;
 
@@ -97,6 +102,15 @@ begin
             -- --------------------------------------
             -- BRANCH B: Challenge Mode
             -- --------------------------------------
+            when CHALLENGE_TIME_INPUT =>
+                -- Wait for the player to press Start
+                Timer_Load <= '1';
+                if start_tick = '1' then
+                    next_state <= CHALLENGE_LOAD;
+                else
+                    next_state <= CHALLENGE_TIME_INPUT;                
+                end if;
+
             when CHALLENGE_LOAD =>
                 Timer_Load <= '1';            -- Send exactly one pulse to Scorekeeper
                 next_state <= CHALLENGE_SCRAMBLE; -- Immediately jump to gameplay

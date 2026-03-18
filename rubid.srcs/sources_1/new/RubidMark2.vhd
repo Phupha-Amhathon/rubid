@@ -47,6 +47,6 @@ BEGIN
     Check_DOWN  : face_checker port map (Face_In => q_internal(11 downto 0),  Is_Solid => solid_flags(0));
 
     is_solved <= solid_flags(5) and solid_flags(4) and solid_flags(3) and 
-                 solid_flags(2) and solid_flags(1) and solid_flags(0);
+                 solid_flags(2) and solid_flags(1) and solid_flags(0) and (not S(2)) and (not S(1)) and (not S(0));
 
 END Behavioral;
