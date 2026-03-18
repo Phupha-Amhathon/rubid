@@ -1,7 +1,6 @@
 ถ้าให้เธอเป้นเสื้อเธอคงเป็นbaby tree 
+<pre>
 top_rubid_game
-├── move_controller
-│   └── moveEncoder
 ├── master_game_controller
 │   ├── inputs:
 │   │   ├── Time_Is_Zero (from countdown_timer)
@@ -12,6 +11,8 @@ top_rubid_game
 │       ├── Timer_Load (to countdown_timer)
 │       ├── Is_Scrambling (to hardware_scrambler, mux)
 │       ├── LED_Win / LED_Lose (to LED)
+├── button_debouncer (used to clean buttons)
+├── videoRubik
 ├── RubidMark2
 │   ├── Rubid
 │   │   └── Facelet (24x)
@@ -20,15 +21,17 @@ top_rubid_game
 │   │           └── MUX8To1
 │   │               └── MUX2To1
 │   └── face_checker (6x)
+├── move_controller
+│   └── moveEncoder
+├── mux_3bit_2to1 (between move_controller/hardware_scrambler and cube)
 ├── sexy_move_detector
 ├── one_second_timer
 ├── countdown_timer
-├── button_debouncer (used to clean buttons)
-├── hardware_scrambler
 ├── seven_segment_controller
-├── videoRubik
-├── mux_3bit_2to1 (between move_controller/hardware_scrambler and cube)
+├── hardware_scrambler
 
+
+</pre>
 # RubidMark2 Project Component Documentation
 
 ---
