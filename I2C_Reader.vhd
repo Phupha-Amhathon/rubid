@@ -66,7 +66,7 @@ begin
                 sda_out <= '1';
                 scl_out <= '1';
                 bit_cnt <= 7;
-                Temp_Data <= x"0640";
+                Temp_Data <= x"0640"; -- Legacy startup default kept until first valid sensor read
             elsif i2c_tick = '1' then
                 
                 case state is
@@ -76,7 +76,7 @@ begin
 
                     -- START CONDITION: SDA goes low while SCL is high
                     when START1 =>
-                        sda_out <= '0'; scl_out <= '1';
+                        sda_out <= '0';
                         bit_cnt <= 7;
                         scl_out <= '0';
                         state <= ADDR_W;
@@ -123,7 +123,7 @@ begin
 
                     -- REPEATED START for Read Operation
                     when START2 =>
-                        sda_out <= '0'; scl_out <= '1';
+                        sda_out <= '0';
                         bit_cnt <= 7;
                         scl_out <= '0';
                         state <= ADDR_R;
@@ -155,6 +155,7 @@ begin
                             sda_out <= '1'; -- Let slave drive SDA
                             scl_out <= '1';
                         else
+                            -- Sample on the SCL 1->0 transition, after data was stable during SCL='1'.
                             saved_temp(bit_cnt + 8) <= SDA;
                             scl_out <= '0';
                             if bit_cnt = 0 then state <= ACK4; else bit_cnt <= bit_cnt - 1; end if;
@@ -195,6 +196,7 @@ begin
                     -- STOP Condition
                     when STOP =>
                         sda_out <= '1'; scl_out <= '1';
+                        -- 0xFF7F / 0xFFFF are common pull-up-only patterns when sensor read fails.
                         if saved_temp /= x"FF7F" and saved_temp /= x"FFFF" then
                             Temp_Data <= saved_temp; -- Output the final 16-bit value
                         end if;
