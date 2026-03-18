@@ -66,6 +66,7 @@ begin
                 sda_out <= '1';
                 scl_out <= '1';
                 bit_cnt <= 7;
+                Temp_Data <= x"0640"; -- Legacy startup default kept until first valid sensor read
             elsif i2c_tick = '1' then
                 
                 case state is
@@ -75,84 +76,130 @@ begin
 
                     -- START CONDITION: SDA goes low while SCL is high
                     when START1 =>
-                        sda_out <= '0'; scl_out <= '1';
+                        sda_out <= '0';
                         bit_cnt <= 7;
+                        scl_out <= '0';
                         state <= ADDR_W;
 
                     -- Send Device Address + Write Bit (0x4B)
                     when ADDR_W =>
-                        scl_out <= '0';
-                        sda_out <= DEV_ADDR_W(bit_cnt);
-                        if bit_cnt = 0 then state <= ACK1; else bit_cnt <= bit_cnt - 1; end if;
+                        if scl_out = '0' then
+                            sda_out <= DEV_ADDR_W(bit_cnt);
+                            scl_out <= '1';
+                        else
+                            scl_out <= '0';
+                            if bit_cnt = 0 then state <= ACK1; else bit_cnt <= bit_cnt - 1; end if;
+                        end if;
 
                     -- Wait for ACK from Sensor
                     when ACK1 =>
-                        scl_out <= '1';
-                        sda_out <= '1'; -- Release SDA line
-                        bit_cnt <= 7;
-                        state <= REG_ADDR;
+                        if scl_out = '0' then
+                            sda_out <= '1'; -- Release SDA line
+                            scl_out <= '1';
+                        else
+                            scl_out <= '0';
+                            bit_cnt <= 7;
+                            state <= REG_ADDR;
+                        end if;
 
                     -- Send Register Address (0x00 for Temp)
                     when REG_ADDR =>
-                        scl_out <= '0';
-                        sda_out <= TEMP_REG(bit_cnt);
-                        if bit_cnt = 0 then state <= ACK2; else bit_cnt <= bit_cnt - 1; end if;
+                        if scl_out = '0' then
+                            sda_out <= TEMP_REG(bit_cnt);
+                            scl_out <= '1';
+                        else
+                            scl_out <= '0';
+                            if bit_cnt = 0 then state <= ACK2; else bit_cnt <= bit_cnt - 1; end if;
+                        end if;
 
                     when ACK2 =>
-                        scl_out <= '1';
-                        sda_out <= '1'; -- Release SDA
-                        state <= START2;
+                        if scl_out = '0' then
+                            sda_out <= '1'; -- Release SDA
+                            scl_out <= '1';
+                        else
+                            scl_out <= '0';
+                            state <= START2;
+                        end if;
 
                     -- REPEATED START for Read Operation
                     when START2 =>
-                        sda_out <= '0'; scl_out <= '1';
+                        sda_out <= '0';
                         bit_cnt <= 7;
+                        scl_out <= '0';
                         state <= ADDR_R;
 
                     -- Send Device Address + Read Bit (0x4B + 1)
                     when ADDR_R =>
-                        scl_out <= '0';
-                        sda_out <= DEV_ADDR_R(bit_cnt);
-                        if bit_cnt = 0 then state <= ACK3; else bit_cnt <= bit_cnt - 1; end if;
+                        if scl_out = '0' then
+                            sda_out <= DEV_ADDR_R(bit_cnt);
+                            scl_out <= '1';
+                        else
+                            scl_out <= '0';
+                            if bit_cnt = 0 then state <= ACK3; else bit_cnt <= bit_cnt - 1; end if;
+                        end if;
 
                     -- Wait for ACK from Sensor
                     when ACK3 =>
-                        scl_out <= '1';
-                        sda_out <= '1'; -- Release SDA
-                        bit_cnt <= 7;
-                        state <= RD_MSB;
+                        if scl_out = '0' then
+                            sda_out <= '1'; -- Release SDA
+                            scl_out <= '1';
+                        else
+                            scl_out <= '0';
+                            bit_cnt <= 7;
+                            state <= RD_MSB;
+                        end if;
 
                     -- Read MSB (First 8 bits of Temp)
                     when RD_MSB =>
-                        scl_out <= '0';
-                        sda_out <= '1'; -- Let slave drive SDA
-                        saved_temp(bit_cnt + 8) <= SDA; -- Sample data on falling edge of SCL
-                        if bit_cnt = 0 then state <= ACK4; else bit_cnt <= bit_cnt - 1; end if;
+                        if scl_out = '0' then
+                            sda_out <= '1'; -- Let slave drive SDA
+                            scl_out <= '1';
+                        else
+                            -- Sample on the SCL 1->0 transition, after data was stable during SCL='1'.
+                            saved_temp(bit_cnt + 8) <= SDA;
+                            scl_out <= '0';
+                            if bit_cnt = 0 then state <= ACK4; else bit_cnt <= bit_cnt - 1; end if;
+                        end if;
 
                     -- Master Acknowledges MSB
                     when ACK4 =>
-                        scl_out <= '1';
-                        sda_out <= '0'; -- Master sends ACK
-                        bit_cnt <= 7;
-                        state <= RD_LSB;
+                        if scl_out = '0' then
+                            sda_out <= '0'; -- Master sends ACK
+                            scl_out <= '1';
+                        else
+                            scl_out <= '0';
+                            bit_cnt <= 7;
+                            state <= RD_LSB;
+                        end if;
 
                     -- Read LSB (Second 8 bits of Temp)
                     when RD_LSB =>
-                        scl_out <= '0';
-                        sda_out <= '1'; -- Let slave drive SDA
-                        saved_temp(bit_cnt) <= SDA; -- Sample data
-                        if bit_cnt = 0 then state <= NACK; else bit_cnt <= bit_cnt - 1; end if;
+                        if scl_out = '0' then
+                            sda_out <= '1'; -- Let slave drive SDA
+                            scl_out <= '1';
+                        else
+                            saved_temp(bit_cnt) <= SDA;
+                            scl_out <= '0';
+                            if bit_cnt = 0 then state <= NACK; else bit_cnt <= bit_cnt - 1; end if;
+                        end if;
 
                     -- Master NACKs (Tells sensor to stop sending)
                     when NACK =>
-                        scl_out <= '1';
-                        sda_out <= '1'; 
-                        state <= STOP;
+                        if scl_out = '0' then
+                            sda_out <= '1';
+                            scl_out <= '1';
+                        else
+                            scl_out <= '0';
+                            state <= STOP;
+                        end if;
 
                     -- STOP Condition
                     when STOP =>
                         sda_out <= '1'; scl_out <= '1';
-                        Temp_Data <= saved_temp; -- Output the final 16-bit value
+                        -- 0xFF7F / 0xFFFF are common pull-up-only patterns when sensor read fails.
+                        if saved_temp /= x"FF7F" and saved_temp /= x"FFFF" then
+                            Temp_Data <= saved_temp; -- Output the final 16-bit value
+                        end if;
                         state <= IDLE; 
 
                     when others => state <= IDLE;

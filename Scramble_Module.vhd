@@ -37,13 +37,13 @@ architecture structural of Scramble_Module is
 begin
 
     -- MOVEMENT ENCODER:
-    sS <= "000" when sU = '1' else 
-          "001" when sF = '1' else 
-          "010" when sL = '1' else 
-          "011" when sR = '1' else 
-          "100" when sD = '1' else 
-          "101" when sB = '1' else 
-          "111";                   
+    sS <= "011" when sU = '1' else
+          "001" when sF = '1' else
+          "100" when sL = '1' else
+          "010" when sR = '1' else
+          "110" when sD = '1' else
+          "101" when sB = '1' else
+          "000";
 
     -- 1. I2C Temperature Sensor Reader
     READER_INST: entity work.I2C_Reader 
