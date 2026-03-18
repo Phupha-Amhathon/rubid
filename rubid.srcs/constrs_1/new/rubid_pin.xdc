@@ -50,14 +50,14 @@ set_property -dict {PACKAGE_PIN H6 IOSTANDARD LVCMOS33} [get_ports {SW[3]}]  ; #
 set_property -dict {PACKAGE_PIN T13 IOSTANDARD LVCMOS33} [get_ports {SW[4]}]  ; # Face R
 set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports {SW[5]}]  ; # Face F
 set_property -dict {PACKAGE_PIN U8 IOSTANDARD LVCMOS33} [get_ports {SW[6]}]  ; # Direction (CW/CCW)
-set_property -dict {PACKAGE_PIN T8 IOSTANDARD LVCMOS33} [get_ports {SW[7]}]  ; # Timer Bit 0
-set_property -dict {PACKAGE_PIN R13  IOSTANDARD LVCMOS33} [get_ports {SW[8]}]  ; # Timer Bit 1
-set_property -dict {PACKAGE_PIN U18  IOSTANDARD LVCMOS33} [get_ports {SW[9]}]  ; # Timer Bit 2
-set_property -dict {PACKAGE_PIN T18 IOSTANDARD LVCMOS33} [get_ports {SW[10]}] ; # Timer Bit 3
-set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS33} [get_ports {SW[11]}] ; # Timer Bit 4
-set_property -dict {PACKAGE_PIN R15  IOSTANDARD LVCMOS33} [get_ports {SW[12]}] ; # Timer Bit 5
-set_property -dict {PACKAGE_PIN M13 IOSTANDARD LVCMOS33} [get_ports {SW[13]}] ; # Timer Bit 6
-set_property -dict {PACKAGE_PIN L16 IOSTANDARD LVCMOS33} [get_ports {SW[14]}] ; # Timer Bit 7
+set_property -dict {PACKAGE_PIN T8 IOSTANDARD LVCMOS33} [get_ports {SW[14]}]  ; # Timer Bit 0
+set_property -dict {PACKAGE_PIN R13  IOSTANDARD LVCMOS33} [get_ports {SW[13]}]  ; # Timer Bit 1
+set_property -dict {PACKAGE_PIN U18  IOSTANDARD LVCMOS33} [get_ports {SW[12]}]  ; # Timer Bit 2
+set_property -dict {PACKAGE_PIN T18 IOSTANDARD LVCMOS33} [get_ports {SW[11]}] ; # Timer Bit 3
+set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS33} [get_ports {SW[10]}] ; # Timer Bit 4
+set_property -dict {PACKAGE_PIN R15  IOSTANDARD LVCMOS33} [get_ports {SW[9]}] ; # Timer Bit 5
+set_property -dict {PACKAGE_PIN M13 IOSTANDARD LVCMOS33} [get_ports {SW[8]}] ; # Timer Bit 6
+set_property -dict {PACKAGE_PIN L16 IOSTANDARD LVCMOS33} [get_ports {SW[7]}] ; # Timer Bit 7
 set_property -dict {PACKAGE_PIN J15 IOSTANDARD LVCMOS33} [get_ports {SW[15]}] ; # Game Mode (Free/Challenge)
 
 # ------------------------------------------------------------------------------

@@ -76,7 +76,8 @@ begin
     vga_sync_inst : vga_sync
         port map (
             clk => clk,
-            reset => reset,
+--            reset => reset,
+            reset => '0',
             hsync => hsync_int,
             vsync => vsync_int,
             video_on => video_on,

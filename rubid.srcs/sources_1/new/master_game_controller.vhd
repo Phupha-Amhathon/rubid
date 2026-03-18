@@ -11,12 +11,12 @@ entity master_game_controller is
         -- Inputs from other modules
         Time_Is_Zero : in STD_LOGIC;                      -- From the Countdown Timer
         Is_Solved    : in STD_LOGIC;                      -- From RubidMark2
-        Scramble_Done: in STD_LOGIC;
+        Scramble_Done: in STD_LOGIC;                      -- from scrambler 
         
         -- Control Outputs to other modules
         Game_Active  : out STD_LOGIC;                     -- Enables the Move Controller
         Timer_Load   : out STD_LOGIC;                     -- Tells the Timer to grab switch values
-        Is_Scrambling: out STD_LOGIC;               -- NEW: Tells the Scrambler to start scrambling (Challenge Mode only)   
+        Is_Scrambling: out STD_LOGIC;                     -- connect to mux 
         
         -- LED Status Flags
         LED_Win      : out STD_LOGIC;
