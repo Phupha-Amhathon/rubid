@@ -28,43 +28,54 @@ end countdown_timer;
 
 architecture Behavioral of countdown_timer is
 
-    signal current_time : integer range 0 to MAX_TIME := 0;
+    -- Changed to unsigned for bit-level manipulation
+    signal current_time : unsigned(7 downto 0) := (others => '0');
 
 begin
 
     process(Clk)
-        variable bonus_int : integer;
+        variable bonus_uns : unsigned(7 downto 0);
+        -- Variables to act as gates for Scenario B
+        variable borrow    : std_logic_vector(8 downto 0);
+        variable next_time : unsigned(7 downto 0);
     begin
         if falling_edge(Clk) then
             
             -- Priority 1: Load a brand new game time
             if Load_Enable = '1' then
-                current_time <= to_integer(unsigned(Time_In));
+                current_time <= unsigned(Time_In);
                 
             -- Priority 2: Game is running
             elsif current_time > 0 then
                 
-                -- Convert the incoming bonus vector to an integer for easy math
-                bonus_int := to_integer(unsigned(Add_Value));
+                bonus_uns := unsigned(Add_Value);
                 
-                -- SCENARIO A: Collision! Tick and Add happen on the exact same cycle
+                -- SCENARIO A: Collision! (Tick and Add)
                 if Tick_1Hz = '1' and Add_Enable = '1' then
-                    if (current_time - 1 + bonus_int) > MAX_TIME then
-                        current_time <= MAX_TIME;
+                    -- High-level addition/subtraction used here for complexity management
+                    if (current_time + bonus_uns - 1) > MAX_TIME then
+                        current_time <= to_unsigned(MAX_TIME, 8);
                     else
-                        current_time <= current_time - 1 + bonus_int;
+                        current_time <= current_time + bonus_uns - 1;
                     end if;
                     
-                -- SCENARIO B: Normal 1-second countdown
+                -- SCENARIO B: Normal 1-second countdown (GATE LEVEL)
                 elsif Tick_1Hz = '1' then
-                    current_time <= current_time - 1;
+                    borrow(0) := '1'; -- We want to subtract 1
+                    for i in 0 to 7 loop
+                        -- XOR Gate for Difference
+                        next_time(i) := current_time(i) xor borrow(i);
+                        -- NOT + AND Gate for Borrow
+                        borrow(i+1)  := (not current_time(i)) and borrow(i);
+                    end loop;
+                    current_time <= next_time;
                     
                 -- SCENARIO C: Adding the bonus time
                 elsif Add_Enable = '1' then
-                    if (current_time + bonus_int) > MAX_TIME then
-                        current_time <= MAX_TIME; 
+                    if (current_time + bonus_uns) > MAX_TIME then
+                        current_time <= to_unsigned(MAX_TIME, 8); 
                     else
-                        current_time <= current_time + bonus_int;
+                        current_time <= current_time + bonus_uns;
                     end if;
                 end if;
                 
@@ -72,7 +83,7 @@ begin
         end if;
     end process;
 
-    Time_Out <= std_logic_vector(to_unsigned(current_time, 8));
+    Time_Out <= std_logic_vector(current_time);
     Time_Is_Zero <= '1' when current_time = 0 else '0';
 
 end Behavioral;
