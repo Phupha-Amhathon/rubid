@@ -227,7 +227,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
     -- --------------------------------------------
 
     --sys scramble amout
-    signal scramble_moves_needed : STD_LOGIC_VECTOR(3 downto 0):="0001";
+    signal scramble_moves_needed : STD_LOGIC_VECTOR(3 downto 0):="0010";
     
     -- ---> ADDED FOR 7-SEGMENT <---
     SIGNAL current_time_wire : STD_LOGIC_VECTOR(7 DOWNTO 0); -- Carries the time from the Timer to the Display

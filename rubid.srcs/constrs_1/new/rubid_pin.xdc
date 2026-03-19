@@ -43,12 +43,12 @@ set_property -dict {PACKAGE_PIN P18 IOSTANDARD LVCMOS33} [get_ports {BTND}]
 # ------------------------------------------------------------------------------
 # 4. PLAYER INPUTS (16 Switches)
 # ------------------------------------------------------------------------------
-set_property -dict {PACKAGE_PIN V10 IOSTANDARD LVCMOS33} [get_ports {SW[0]}]  ; # Face D
-set_property -dict {PACKAGE_PIN U11 IOSTANDARD LVCMOS33} [get_ports {SW[1]}]  ; # Face B
-set_property -dict {PACKAGE_PIN U12 IOSTANDARD LVCMOS33} [get_ports {SW[2]}]  ; # Face L
-set_property -dict {PACKAGE_PIN H6 IOSTANDARD LVCMOS33} [get_ports {SW[3]}]  ; # Face U
-set_property -dict {PACKAGE_PIN T13 IOSTANDARD LVCMOS33} [get_ports {SW[4]}]  ; # Face R
-set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports {SW[5]}]  ; # Face F
+set_property -dict {PACKAGE_PIN V10 IOSTANDARD LVCMOS33} [get_ports {SW[5]}]  ; # Face F
+set_property -dict {PACKAGE_PIN U11 IOSTANDARD LVCMOS33} [get_ports {SW[4]}]  ; # Face R
+set_property -dict {PACKAGE_PIN U12 IOSTANDARD LVCMOS33} [get_ports {SW[3]}]  ; # Face U
+set_property -dict {PACKAGE_PIN H6 IOSTANDARD LVCMOS33} [get_ports {SW[2]}]  ; # Face L
+set_property -dict {PACKAGE_PIN T13 IOSTANDARD LVCMOS33} [get_ports {SW[1]}]  ; # Face B
+set_property -dict {PACKAGE_PIN R16 IOSTANDARD LVCMOS33} [get_ports {SW[0]}]  ; # Face D
 set_property -dict {PACKAGE_PIN U8 IOSTANDARD LVCMOS33} [get_ports {SW[6]}]  ; # Direction (CW/CCW)
 set_property -dict {PACKAGE_PIN T8 IOSTANDARD LVCMOS33} [get_ports {SW[14]}]  ; # Timer Bit 0
 set_property -dict {PACKAGE_PIN R13  IOSTANDARD LVCMOS33} [get_ports {SW[13]}]  ; # Timer Bit 1
