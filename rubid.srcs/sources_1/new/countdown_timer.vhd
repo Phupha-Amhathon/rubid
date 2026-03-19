@@ -20,6 +20,8 @@ entity countdown_timer is
         Add_Enable   : in STD_LOGIC;                      -- Pulse high to add time
         Add_Value    : in STD_LOGIC_VECTOR(7 downto 0);   -- How much time to add
         
+        Is_Solved    : in STD_LOGIC;                      -- From RubidMark2
+        
         -- Outputs
         Time_Out     : out STD_LOGIC_VECTOR(7 downto 0);  -- Sent to the 7-segment displays
         Time_Is_Zero : out STD_LOGIC                      -- Sent to Master FSM to end game
@@ -46,7 +48,7 @@ begin
                 current_time <= unsigned(Time_In);
                 
             -- Priority 2: Game is running
-            elsif current_time > 0 then
+            elsif current_time > 0 and Is_Solved = '0' then
                 
                 bonus_uns := unsigned(Add_Value);
                 
