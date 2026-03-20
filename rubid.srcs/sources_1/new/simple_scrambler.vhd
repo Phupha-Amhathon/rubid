@@ -76,12 +76,10 @@ begin
     end process;
     
     process(chaos_reg)
+        variable move_idx : integer range 1 to 6;
     begin
-        if unsigned(chaos_reg(2 downto 0)) > 5 then
-            random_face <= std_logic_vector(unsigned(chaos_reg(2 downto 0)) - 2);
-        else
-            random_face <= chaos_reg(2 downto 0);
-        end if;
+        move_idx := (to_integer(unsigned(chaos_reg(2 downto 0))) mod 6) + 1;
+        random_face <= std_logic_vector(to_unsigned(move_idx, 3));
     end process;
 
     -- ----------------------------------------------------------------------
