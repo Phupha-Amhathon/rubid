@@ -16,12 +16,19 @@ end hardware_scrambler;
 
 architecture Behavioral of hardware_scrambler is
 
-    -- ---> BUG FIX 1: The wheel must start at 1 ("001") <---
-    signal fast_counter : unsigned(2 downto 0) := "001";
+    -- Entropy source sampled when Start_Scramble rises
+    signal free_counter : unsigned(15 downto 0) := (others => '0');
+    signal chaos_reg    : std_logic_vector(15 downto 0) := (others => '0');
+    signal mux1_out     : std_logic_vector(15 downto 0);
+    signal mux2_out     : std_logic_vector(15 downto 0);
     signal random_face  : std_logic_vector(2 downto 0);
 
-    type state_type is (IDLE, LATCH_MOVE, HOLD_PULSE, COOLDOWN, CHECK_DONE);
+    -- Outputs from all 8 chaos machines
+    signal m1, m2, m3, m4, m5, m6, m7, m8 : std_logic_vector(15 downto 0);
+
+    type state_type is (IDLE, CALC_CHAOS, LATCH_MOVE, HOLD_PULSE, COOLDOWN, CHECK_DONE);
     signal state : state_type := IDLE;
+    signal start_prev : std_logic := '0';
 
     signal moves_completed : unsigned(3 downto 0) := (others => '0');
     
@@ -31,22 +38,51 @@ architecture Behavioral of hardware_scrambler is
 
 begin
 
-    -- ----------------------------------------------------------------------
-    -- 1. THE ROULETTE WHEEL
-    -- ----------------------------------------------------------------------
+    U1: entity work.machine_reverse   port map(chaos_reg, m1);
+    U2: entity work.machine_rotate_7  port map(chaos_reg, m2);
+    U3: entity work.machine_shuffle   port map(chaos_reg, m3);
+    U4: entity work.machine_gray      port map(chaos_reg, m4);
+
+    U5: entity work.machine_xor_magic port map(mux1_out,  m5);
+    U6: entity work.machine_bit_flip  port map(mux1_out,  m6);
+    U7: entity work.machine_byte_swap port map(mux1_out,  m7);
+    U8: entity work.machine_neighbor  port map(mux1_out,  m8);
+
+    process(chaos_reg, m1, m2, m3, m4)
+    begin
+        case chaos_reg(1 downto 0) is
+            when "00" => mux1_out <= m1;
+            when "01" => mux1_out <= m2;
+            when "10" => mux1_out <= m3;
+            when others => mux1_out <= m4;
+        end case;
+    end process;
+
+    process(chaos_reg, m5, m6, m7, m8)
+    begin
+        case chaos_reg(15 downto 14) is
+            when "00" => mux2_out <= m5;
+            when "01" => mux2_out <= m6;
+            when "10" => mux2_out <= m7;
+            when others => mux2_out <= m8;
+        end case;
+    end process;
+
     process(Clk)
     begin
         if rising_edge(Clk) then
-            -- ---> BUG FIX 2: Count 1 to 6 ("001" to "110"), avoiding "000" and "111" <---
-            if fast_counter = "110" then
-                fast_counter <= "001";
-            else
-                fast_counter <= fast_counter + 1;
-            end if;
+            free_counter <= free_counter + 1;
         end if;
     end process;
-
-    random_face <= std_logic_vector(fast_counter);
+    
+    process(chaos_reg)
+    begin
+        if unsigned(chaos_reg(2 downto 0)) > 5 then
+            random_face <= std_logic_vector(unsigned(chaos_reg(2 downto 0)) - 2);
+        else
+            random_face <= chaos_reg(2 downto 0);
+        end if;
+    end process;
 
     -- ----------------------------------------------------------------------
     -- 2. THE TIMING PIPELINE 
@@ -56,26 +92,33 @@ begin
         if Reset = '1' then
             state <= IDLE;
             moves_completed <= (others => '0');
-            -- ---> BUG FIX 3: "000" is the true HOLD/IDLE state <---
             S_Out <= "000"; 
             Scramble_Done <= '0';
             timer <= 0;
+            chaos_reg <= (others => '0');
+            start_prev <= '0';
             
         elsif rising_edge(Clk) then
+            start_prev <= Start_Scramble;
             case state is
                 
                 when IDLE =>
                     Scramble_Done <= '0';
-                    S_Out <= "000"; -- ---> BUG FIX 3 <---
+                    S_Out <= "000";
                     moves_completed <= (others => '0');
                     
-                    if Start_Scramble = '1' then
+                    if Start_Scramble = '1' and start_prev = '0' then
                         if unsigned(Moves_Needed) > 0 then
-                            state <= LATCH_MOVE;
+                            chaos_reg <= std_logic_vector(free_counter);
+                            state <= CALC_CHAOS;
                         else
                             Scramble_Done <= '1'; 
                         end if;
                     end if;
+                    
+                when CALC_CHAOS =>
+                    chaos_reg <= mux2_out;
+                    state <= LATCH_MOVE;
 
                 when LATCH_MOVE =>
                     S_Out <= random_face;
@@ -86,7 +129,7 @@ begin
                     if timer < PULSE_WIDTH then
                         timer <= timer + 1;
                     else
-                        S_Out <= "000"; -- ---> BUG FIX 3 <---
+                        S_Out <= "000";
                         timer <= 0;
                         state <= COOLDOWN;
                     end if;
@@ -102,7 +145,7 @@ begin
                     moves_completed <= moves_completed + 1;
                     
                     if (moves_completed + 1) < unsigned(Moves_Needed) then
-                        state <= LATCH_MOVE; 
+                        state <= CALC_CHAOS; 
                     else
                         Scramble_Done <= '1'; 
                         if Start_Scramble = '0' then

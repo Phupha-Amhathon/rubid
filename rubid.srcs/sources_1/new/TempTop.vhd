@@ -54,6 +54,9 @@ architecture Structural of TempTop is
     -- 7-Segment Digit signals
     signal d10, d1, df1, df2, df3, df4 : integer;
     signal bcd_data : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+    
+    signal seg_ca, seg_cb, seg_cc, seg_cd, seg_ce, seg_cf, seg_cg, seg_dp : STD_LOGIC;
+    signal seg_an : STD_LOGIC_VECTOR(7 downto 0);
 
     -- Scrambler signals for Vivado ILA Debugging
     signal scramble_move : STD_LOGIC_VECTOR(2 downto 0);
@@ -116,8 +119,19 @@ begin
         port map (
             clk   => CLK100MHZ,
             value => bcd_data, 
-            CA=>CA, CB=>CB, CC=>CC, CD=>CD, CE=>CE, CF=>CF, CG=>CG, DP=>DP, AN=>AN
+            CA=>seg_ca, CB=>seg_cb, CC=>seg_cc, CD=>seg_cd, CE=>seg_ce, CF=>seg_cf, CG=>seg_cg, DP=>seg_dp, AN=>seg_an
         );
+
+    -- Show temperature only while button is held
+    CA <= seg_ca when BTNC = '1' else '1';
+    CB <= seg_cb when BTNC = '1' else '1';
+    CC <= seg_cc when BTNC = '1' else '1';
+    CD <= seg_cd when BTNC = '1' else '1';
+    CE <= seg_ce when BTNC = '1' else '1';
+    CF <= seg_cf when BTNC = '1' else '1';
+    CG <= seg_cg when BTNC = '1' else '1';
+    DP <= seg_dp when BTNC = '1' else '1';
+    AN <= seg_an when BTNC = '1' else (others => '1');
 
     -- The Chaos Scrambler Module
     Scrambler: entity work.hardware_scrambler
