@@ -115,6 +115,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
             Tick_1Hz : IN STD_LOGIC;                   -- minus one second pulse from the metronome
             Add_Enable : IN STD_LOGIC;                 -- flag for adding bonus time (from sexy move rewards)
             Add_Value : IN STD_LOGIC_VECTOR(7 DOWNTO 0); -- how much bonus time to add 
+            Is_Solved    : in STD_LOGIC;                      -- From RubidMark2
             Time_Out : OUT STD_LOGIC_VECTOR(7 DOWNTO 0); -- current remaining time
             Time_Is_Zero : OUT STD_LOGIC);              -- flag to indicate time has run out 
     END COMPONENT;
@@ -296,7 +297,11 @@ BEGIN
         Time_In      => SW(14 DOWNTO 7), 
         Tick_1Hz     => tick_1hz_wire,
         Add_Enable   => time_bonus_wire,
-        Add_Value    => "00000101", 
+        Add_Value    => "00000101",
+        
+        Is_Solved => is_solved_wire,
+
+        -- ---> CHANGED: Connect to our new wire! <---
         Time_Out     => current_time_wire, 
         Time_Is_Zero => time_is_zero_wire
     );
