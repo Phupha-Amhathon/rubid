@@ -21,6 +21,7 @@ entity countdown_timer is
         Add_Value    : in STD_LOGIC_VECTOR(7 downto 0);   -- How much time to add
         
         Is_Solved    : in STD_LOGIC;                      -- From RubidMark2
+        RESET        : in STD_LOGIC;                      -- From top level state reset (game reset) 
         
         -- Outputs
         Time_Out     : out STD_LOGIC_VECTOR(7 downto 0);  -- Sent to the 7-segment displays
@@ -42,9 +43,10 @@ begin
         variable next_time : unsigned(7 downto 0);
     begin
         if falling_edge(Clk) then
-            
+            if RESET = '1' then -- Asynchronous reset to clear the timer
+                current_time <= (others => '0');
             -- Priority 1: Load a brand new game time
-            if Load_Enable = '1' then
+            elsif Load_Enable = '1' then
                 current_time <= unsigned(Time_In);
                 
             -- Priority 2: Game is running
