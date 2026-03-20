@@ -200,7 +200,6 @@ ARCHITECTURE Structural OF top_rubid_game IS
     SIGNAL is_scrambling         : STD_LOGIC;
     SIGNAL scr_done_wire         : STD_LOGIC;
     SIGNAL scr_s_out             : STD_LOGIC_VECTOR(2 DOWNTO 0);
-    SIGNAL move_controller_S_Out : STD_LOGIC_VECTOR(2 DOWNTO 0);
     -- --------------------------------------------
 
     --sys scramble amout
