@@ -32,7 +32,11 @@ ENTITY top_rubid_game IS
         -- VGA OUTPUTS
         hsync   : out STD_LOGIC;
         vsync   : out STD_LOGIC;
-        rgb     : out STD_LOGIC_VECTOR(11 downto 0)
+        rgb     : out STD_LOGIC_VECTOR(11 downto 0);
+
+        -- ---> ADDED FOR I2C TEMP SENSOR <---
+            SDA     : inout STD_LOGIC; -- Serial Data (Must be inout!)
+            SCL     : out STD_LOGIC    -- Serial Clock
     );
 END top_rubid_game;
 
@@ -89,11 +93,26 @@ ARCHITECTURE Structural OF top_rubid_game IS
             Clk            : in STD_LOGIC;
             Reset          : in STD_LOGIC;
             Start_Scramble : in STD_LOGIC;
-            Moves_Needed   : in STD_LOGIC_VECTOR(3 downto 0);
             S_Out          : out STD_LOGIC_VECTOR(2 downto 0);
-            Scramble_Done  : out STD_LOGIC
+            Scramble_Done  : out STD_LOGIC;
+
+            Temp_Input : IN STD_LOGIC_VECTOR(15 DOWNTO 0); -- From ADT7420
+            SDA : INOUT STD_LOGIC;
+            SCL : OUT STD_LOGIC
         );
     END COMPONENT;
+
+    COMPONENT adt7420_i2c_reader is
+    Port (
+        clk        : in  STD_LOGIC;                    -- 100 MHz System Clock
+        reset_n    : in  STD_LOGIC;                    -- Active-low reset
+        SDA        : inout STD_LOGIC;                  -- I2C Serial Data
+        SCL        : out STD_LOGIC;                    -- I2C Serial Clock
+        temp_data  : out STD_LOGIC_VECTOR(15 downto 0);-- 16-bit Temp Output
+        busy       : out STD_LOGIC;                    -- Busy status
+        error_flag : out STD_LOGIC                     -- Error status
+    );
+    end COMPONENT;
 
     -- switch between move controller and scrambler 
     COMPONENT mux_3bit_2to1
@@ -206,6 +225,12 @@ ARCHITECTURE Structural OF top_rubid_game IS
 
     --sys scramble amout
     signal scramble_moves_needed : STD_LOGIC_VECTOR(3 downto 0):="0010";
+    -- new 
+     -- Temperature signals
+    signal i2c_busy    : STD_LOGIC;
+    signal i2c_error   : STD_LOGIC;
+    signal temp_raw    : STD_LOGIC_VECTOR(15 downto 0);
+    signal temp_scaled : integer; 
     
     -- 7 segment 
     SIGNAL current_time_wire : STD_LOGIC_VECTOR(7 DOWNTO 0); -- Carries the time from the Timer to the Display
@@ -263,14 +288,37 @@ BEGIN
     );
 
     -- ---> Scrambler <---
-    U_Scrambler : hardware_scrambler PORT MAP(
-        Clk            => CLK100MHZ,
-        Reset          => sys_reset,
-        Start_Scramble => is_scrambling,
-        Moves_Needed   => scramble_moves_needed,
-        S_Out          => scr_s_out,
-        Scramble_Done  => scr_done_wire
-    );
+    -- U_Scrambler : hardware_scrambler PORT MAP(
+    --     Clk            => CLK100MHZ,
+    --     Reset          => sys_reset,
+    --     Start_Scramble => is_scrambling,
+    --     Moves_Needed   => scramble_moves_needed,
+    --     S_Out          => scr_s_out,
+    --     Scramble_Done  => scr_done_wire
+    -- );
+
+    -- I2C Reader (always running to keep temp_raw fresh for scrambler seed)
+    I2C_Reader: entity work.adt7420_i2c_reader
+        port map (
+            clk        => CLK100MHZ, 
+            reset_n    => '1',       
+            SDA        => SDA,       
+            SCL        => SCL,      
+            temp_data  => temp_raw,  
+            busy       => i2c_busy,  
+            error_flag => i2c_error  
+        );
+    
+    -- Chaos Scrambler (Start_Scramble comes from external parent module)
+    Scrambler: entity work.hardware_scrambler
+        port map (
+            Clk            => CLK100MHZ,
+            Reset          => sys_reset,
+            Start_Scramble => is_scrambling,
+            Temp_Input     => temp_raw,
+            S_Out          => scr_s_out,
+            Scramble_Done  => scr_done_wire
+        );
 
     -- ---> Datapath MUX <---
     U_Datapath_Mux : mux_3bit_2to1 PORT MAP(

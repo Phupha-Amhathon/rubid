@@ -122,3 +122,12 @@ set_property -dict {PACKAGE_PIN P14 IOSTANDARD LVCMOS33} [get_ports {AN[4]}] ; #
 set_property -dict {PACKAGE_PIN T14 IOSTANDARD LVCMOS33} [get_ports {AN[5]}] ; # AN5
 set_property -dict {PACKAGE_PIN K2  IOSTANDARD LVCMOS33} [get_ports {AN[6]}] ; # AN6
 set_property -dict {PACKAGE_PIN U13 IOSTANDARD LVCMOS33} [get_ports {AN[7]}] ; # AN7 (Left-most)
+
+
+## 2. I2C Signals (ADT7420 Temperature Sensor)
+set_property PACKAGE_PIN C14 [get_ports SCL]
+set_property IOSTANDARD LVCMOS33 [get_ports SCL]
+set_property PULLTYPE PULLUP [get_ports SCL]
+set_property PACKAGE_PIN C15 [get_ports SDA]
+set_property IOSTANDARD LVCMOS33 [get_ports SDA]
+set_property PULLTYPE PULLUP [get_ports SDA]
