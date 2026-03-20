@@ -196,10 +196,14 @@ ARCHITECTURE Structural OF top_rubid_game IS
     SIGNAL combined_execute : STD_LOGIC;
     SIGNAL auto_boot_reset : STD_LOGIC;
 
-    -- scramber wire
-    SIGNAL is_scrambling         : STD_LOGIC;  -- master to scrambler
-    SIGNAL scr_done_wire         : STD_LOGIC;  -- scrambler to master
-    SIGNAL scr_s_out             : STD_LOGIC_VECTOR(2 DOWNTO 0); -- srambler to mux to cube
+    -- ---> ADDED: Wires for Scrambler and MUX <---
+    SIGNAL is_scrambling         : STD_LOGIC;
+    SIGNAL scr_done_wire         : STD_LOGIC;
+    SIGNAL scr_s_out             : STD_LOGIC_VECTOR(2 DOWNTO 0);
+    SIGNAL move_controller_S_Out : STD_LOGIC_VECTOR(2 DOWNTO 0);
+    -- --------------------------------------------
+
+    --sys scramble amout
     signal scramble_moves_needed : STD_LOGIC_VECTOR(3 downto 0):="0010";
     
     -- 7 segment 
