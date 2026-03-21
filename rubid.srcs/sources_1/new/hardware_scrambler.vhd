@@ -18,7 +18,6 @@
 -- 
 ----------------------------------------------------------------------------------
 
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -35,44 +34,44 @@ entity hardware_scrambler is
 end hardware_scrambler;
 
 architecture Structural of hardware_scrambler is
-    -- Constant for fixed 20 moves
+   
     constant MAX_MOVES : integer := 20;
     
     -- Internal State for Chaos Loop
     signal chaos_reg : STD_LOGIC_VECTOR(15 downto 0);
     signal mux1_out, mux2_out : STD_LOGIC_VECTOR(15 downto 0);
     
+    signal temp_v1     : STD_LOGIC_VECTOR(15 downto 0);
+    signal history_reg : STD_LOGIC_VECTOR(15 downto 0) := x"ACE1";
+    
     -- Outputs from all 8 machines
     signal m1, m2, m3, m4, m5, m6, m7, m8 : STD_LOGIC_VECTOR(15 downto 0);
 
-    -- State Machine
-    type state_type is (IDLE, CALC_CHAOS, LATCH_MOVE, COOLDOWN, CHECK_DONE);
+    -- State Machine (เพิ่ม SEND_PULSE แล้ว)
+    type state_type is (IDLE, PREPARE_SEED, CALC_CHAOS, LATCH_MOVE, SEND_PULSE, COOLDOWN, CHECK_DONE);
     signal state : state_type := IDLE;
 
     signal moves_done : integer range 0 to 31 := 0;
     signal timer : integer := 0;
-    constant COOLDOWN_MAX : integer := 100_000; -- Delay to create a clean pulse
+    constant COOLDOWN_MAX : integer := 40_000_000 ; --delay
+    
+    signal free_counter : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
 
 begin
 
-    -- ======================================================================
-    -- 1. INSTANTIATE ALL 8 CHAOS MACHINES
-    -- ======================================================================
-    -- Group A (Mux 1 - Diffusion)
-    U1: entity work.machine_reverse   port map(chaos_reg, m1);
-    U2: entity work.machine_rotate_7  port map(chaos_reg, m2);
-    U3: entity work.machine_shuffle   port map(chaos_reg, m3);
-    U4: entity work.machine_gray      port map(chaos_reg, m4);
+    -- Group A 
+    U1: entity work.machine_reverse         port map(chaos_reg, m1);
+    U2: entity work.machine_cut             port map(chaos_reg, m2);
+    U3: entity work.machine_shuffle         port map(chaos_reg, m3);
+    U4: entity work.machine_poker_deal      port map(chaos_reg, m4);
     
-    -- Group B (Mux 2 - Confusion) - Fed by the output of Mux 1
-    U5: entity work.machine_xor_magic port map(mux1_out,  m5);
-    U6: entity work.machine_bit_flip  port map(mux1_out,  m6);
-    U7: entity work.machine_byte_swap port map(mux1_out,  m7);
-    U8: entity work.machine_neighbor  port map(mux1_out,  m8);
+    -- Group B
+    U5: entity work.machine_xor_magic       port map(mux1_out,  m5);
+    U6: entity work.machine_consecutive_xor port map(mux1_out,  m6);
+    U7: entity work.machine_doce_fleur      port map(mux1_out,  m7);
+    U8: entity work.machine_all_in          port map(mux1_out,  m8);
 
-    -- ======================================================================
     -- 2. THE DUAL-MUX PATHING ROUTER
-    -- ======================================================================
     -- MUX 1: Uses bits 1:0 of current chaos_reg
     process(chaos_reg, m1, m2, m3, m4)
     begin
@@ -85,10 +84,10 @@ begin
         end case;
     end process;
 
-    -- MUX 2: Uses bits 15:14 of current chaos_reg
+    -- MUX 2: Uses bits 3:2 of current chaos_reg
     process(chaos_reg, m5, m6, m7, m8)
     begin
-        case chaos_reg(15 downto 14) is
+        case chaos_reg(3 downto 2) is
             when "00" => mux2_out <= m5;
             when "01" => mux2_out <= m6;
             when "10" => mux2_out <= m7;
@@ -97,23 +96,35 @@ begin
         end case;
     end process;
 
-    -- ======================================================================
-    -- 3. MAIN CONTROL FSM (The 20-Move Loop)
-    -- ======================================================================
+    -- 3. MAIN CONTROL FSM (The [MAX_MOVES]-Move Loop)
     process(Clk, Reset)
     begin
         if Reset = '1' then
             state <= IDLE;
-            S_Out <= "000";
+            S_Out <= "000"; -- เคลียร์ค่าเป็น 000 (สถานะพักเครื่อง)
             Scramble_Done <= '0';
             moves_done <= 0;
-        elsif rising_edge(Clk) then
+            -- history_reg <= x"ACE1";
+        elsif rising_edge(Clk) then 
+        
+        free_counter <= std_logic_vector(unsigned(free_counter) + 1);
+        
             case state is
                 when IDLE =>
                     Scramble_Done <= '0';
-                    S_Out <= "000";
+                    S_Out <= "000"; -- รอรับคำสั่งในสถานะพักเครื่อง (000)
                     if Start_Scramble = '1' then
-                        chaos_reg <= Temp_Input; -- SEED with the raw temperature!
+                        temp_v1 <= Temp_Input; 
+                        timer <= 0;
+                        state <= PREPARE_SEED;
+                    end if;
+                    
+                 when PREPARE_SEED =>
+                   
+                    if timer < 200000 then
+                        timer <= timer + 1;
+                    else
+                        chaos_reg <= temp_v1 xor Temp_Input xor history_reg xor free_counter;
                         moves_done <= 0;
                         state <= CALC_CHAOS;
                     end if;
@@ -124,19 +135,23 @@ begin
                     state <= LATCH_MOVE;
 
                 when LATCH_MOVE =>
-                    -- Pick Move: Extract bits 2:0 to act as the 3-bit Move Code
-                    -- Prevent 110 (6) and 111 (7) from being sent
-                    if unsigned(chaos_reg(2 downto 0)) > 5 then
-                        S_Out <= std_logic_vector(unsigned(chaos_reg(2 downto 0)) - 2);
+                    -- เช็คว่าถ้าได้ 000 (0) หรือ 111 (7) ให้กลับไปสุ่มให
+                    if unsigned(chaos_reg(2 downto 0)) = 0 or unsigned(chaos_reg(2 downto 0)) = 7 then
+                        state <= CALC_CHAOS; 
                     else
-                        S_Out <= chaos_reg(2 downto 0);
+                        -- ถ้าได้เลข 1 ถึง 6 ถือว่าผ่าน! ให้ไปยิงสัญญาณได้เลย
+                        state <= SEND_PULSE; 
                     end if;
-                    
+
+                when SEND_PULSE =>
+                    -- ยิงมูฟออกไปให้วงจรหลักเห็นแค่ 1 Clock Cycle
+                    S_Out <= chaos_reg(2 downto 0); 
                     timer <= 0;
                     state <= COOLDOWN;
 
                 when COOLDOWN =>
-                    S_Out <= "000"; -- Pull the move signal low (create a pulse)
+                    -- รีบดึงสายสัญญาณกลับเป็น 000 ทันที เพื่อไม่ให้รูบิคหมุนซ้ำ
+                    S_Out <= "000"; 
                     if timer < COOLDOWN_MAX then
                         timer <= timer + 1;
                     else
@@ -150,7 +165,8 @@ begin
                         state <= CALC_CHAOS; -- Loop back for the next move
                     else
                         Scramble_Done <= '1';
-                        -- Stay here until the human releases the button
+                        history_reg <= chaos_reg; -- last result is seed for next time we play
+                        -- Stay here until Start_Scramble is released
                         if Start_Scramble = '0' then 
                             state <= IDLE; 
                         end if;
