@@ -24,132 +24,104 @@ entity master_game_controller is
     );
 end master_game_controller;
 
-    architecture Behavioral of master_game_controller is
-
-    type game_state_type is (
-        INIT, 
-        FREE_MODE, 
-        CHALLENGE_TIME_INPUT,
-        CHALLENGE_LOAD, 
-        CHALLENGE_SCRAMBLE,
-        CHALLENGE_PLAY, 
-        GAME_OVER_WIN, 
-        GAME_OVER_LOSE
+architecture Gate_Level of master_game_controller is
+    component DFlipFlop is
+    Port ( 
+        D   : in  std_logic;
+        Clk : in  std_logic;
+        Q   : out std_logic;
+        nQ  : out std_logic;
+        Pre, Clr: in std_logic
     );
-    signal current_state, next_state : game_state_type := INIT;
+    end component;
 
-    signal btn_start_prev : STD_LOGIC := '0';
-    signal start_tick     : STD_LOGIC := '0';
+    -- Current State 
+    signal q2, q1, q0 : std_logic;
+    signal nq2, nq1, nq0 : std_logic;
+
+    -- Next State 
+    signal d2, d1, d0 : std_logic;
+
+    -- Edge Detector Wires
+    signal start_prev : std_logic;
+
+    -- Incoming/Internal Wires
+    signal start, mode, timeout, isSolved, scrambleDone: std_logic;
+    signal n_timeout, n_mode : std_logic;
 
 begin
-    start_tick <= BTN_Start and (not btn_start_prev);
-    -- ==========================================
-    -- 1. Synchronous State Register (Falling Edge)
-    -- ==========================================
-    process(Clk)
-    begin
-        if falling_edge(Clk) then
-            btn_start_prev <= BTN_Start;
-            if Reset = '1' then
-                current_state <= INIT;
-            else
-                current_state <= next_state;
-            end if;
-        end if;
-    end process;
 
     -- ==========================================
-    -- 2. Combinatorial Next State & Output Logic
+    -- 1. Input Mapping & Inverters (CRITICAL FIX)
     -- ==========================================
-    process(current_state, BTN_Start, SW_Mode, Time_Is_Zero, Is_Solved, start_tick, Scramble_Done)
-    begin
-        -- Default output states (prevents latches)
-        next_state  <= current_state;
-        Game_Active <= '0';
-        Timer_Load  <= '0';
-        Is_Scrambling <= '0';
-        LED_Win     <= '0';
-        LED_Lose    <= '0';
+    nq2 <= not q2;
+    nq1 <= not q1;
+    nq0 <= not q0;
+    
+    mode <= SW_Mode;
+    n_mode <= not mode;
+    
+    timeout <= Time_Is_Zero;
+    n_timeout <= not timeout;
+    
+    isSolved <= Is_Solved;
+    scrambleDone <= Scramble_Done;
 
-        case current_state is
-            
-            -- --------------------------------------
-            -- THE TRUNK: Waiting for player to start
-            -- --------------------------------------
-            when INIT =>
-                -- Wait for the player to press Start
-                if start_tick = '1' then
-                    if SW_Mode = '0' then
-                        next_state <= FREE_MODE;
-                    else
-                        next_state <= CHALLENGE_TIME_INPUT;
-                    end if;
-                end if;
+    -- ==========================================
+    -- 2. Edge Detector for Start Button
+    -- ==========================================
+    U_Start_Edge: DFlipFlop port map(
+        D   => BTN_Start,
+        Clk => Clk,
+        Q   => start_prev, 
+        nQ  => open, 
+        Pre => '0',
+        Clr => Reset
+    );
+    -- 'start' is only high for exactly ONE clock cycle
+    start <= BTN_Start and (not start_prev); 
 
-            -- --------------------------------------
-            -- BRANCH A: Free Play Sandbox
-            -- --------------------------------------
-            when FREE_MODE =>
-                Game_Active <= '1'; -- Unlock the cube controls
-                -- Notice we ignore Time_Is_Zero here. Play forever!
-                -- We only leave this state if the user hits the physical Reset button.
-                
-                -- Optional: If they solve it in free mode, light up the win LED anyway!
-                if Is_Solved = '1' then
-                    LED_Win <= '1';
-                end if;
+    -- ==========================================
+    -- 3. Next State Combinational Logic
+    -- ==========================================
+    d2 <= (nq2 and q1 and q0) or (q2 and nq1 and nq0) or (q2 and nq1 and q0) or (q2 and q1 and nq0) or (q2 and q1 and q0);
+    
+    d1 <= (nq2 and nq1 and nq0 and start and mode) or 
+          (nq2 and q1 and nq0) or 
+          (q2 and nq1 and q0 and timeout) or 
+          (q2 and nq1 and q0 and n_timeout and isSolved) or 
+          (q2 and q1 and nq0) or 
+          (q2 and q1 and q0);
+          
+    d0 <= (nq2 and nq1 and nq0 and start and n_mode) or 
+          (nq2 and nq1 and q0) or 
+          (nq2 and q1 and nq0 and start) or 
+          (q2 and nq1 and nq0 and scrambleDone) or 
+          (q2 and nq1 and q0 and n_timeout) or 
+          (q2 and q1 and q0); 
 
-            -- --------------------------------------
-            -- BRANCH B: Challenge Mode
-            -- --------------------------------------
-            when CHALLENGE_TIME_INPUT =>
-                -- Wait for the player to press Start
-                Timer_Load <= '1';
-                if start_tick = '1' then
-                    next_state <= CHALLENGE_LOAD;
-                else
-                    next_state <= CHALLENGE_TIME_INPUT;                
-                end if;
+    -- ==========================================
+    -- 4. Output Logic (With Async Reset Masking)
+    -- ==========================================
+    Game_Active   <= ((nq2 and nq1 and q0) or (q2 and nq1 and q0)) and (not Reset);
+    Timer_Load    <= ((nq2 and q1 and nq0) or (nq2 and q1 and q0)) and (not Reset);
+    Is_Scrambling <= (q2 and nq1 and nq0) and (not Reset);
+    LED_Win       <= (q2 and q1 and q0) and (not Reset);
+    LED_Lose      <= (q2 and q1 and nq0) and (not Reset);
 
-            when CHALLENGE_LOAD =>
-                Timer_Load <= '1';            -- Send exactly one pulse to Scorekeeper
-                next_state <= CHALLENGE_SCRAMBLE; -- Immediately jump to gameplay
+    -- ==========================================
+    -- 5. State Register Flip-Flops
+    -- ==========================================
+    U_Q2: DFlipFlop port map(
+        D   => d2, Clk => Clk, Q => q2, nQ => open, Pre => '0', Clr => Reset
+    );
+    
+    U_Q1: DFlipFlop port map(
+        D   => d1, Clk => Clk, Q => q1, nQ => open, Pre => '0', Clr => Reset
+    );
 
-            when CHALLENGE_SCRAMBLE =>
-                Is_Scrambling <= '1'; -- Tells the MUX to switch tracks and Scrambler to start
-                Game_Active   <= '0'; -- Ensure the player's buttons stay locked
-                
-                -- Wait here until the scrambler chip finishes its job
-                if Scramble_Done = '1' then
-                    next_state <= CHALLENGE_PLAY;
-                end if;
+    U_Q0: DFlipFlop port map(
+        D   => d0, Clk => Clk, Q => q0, nQ => open, Pre => '0', Clr => Reset
+    );
 
-            when CHALLENGE_PLAY =>
-                Game_Active <= '1'; -- Unlock the cube controls
-                
-                -- Check for Win Condition FIRST (Priority)
-                if Is_Solved = '1' then
-                    next_state <= GAME_OVER_WIN;
-                    
-                -- Check for Lose Condition SECOND
-                elsif Time_Is_Zero = '1' then
-                    next_state <= GAME_OVER_LOSE;
-                end if;
-
-            -- --------------------------------------
-            -- ENDGAMES: Lock the board and display LEDs
-            -- --------------------------------------
-            when GAME_OVER_WIN =>
-                Game_Active <= '0'; -- Lock the cube controls!
-                LED_Win     <= '1'; -- Turn on the green LED
-                -- Wait here until the player hits Reset
-
-            when GAME_OVER_LOSE =>
-                Game_Active <= '0'; -- Lock the cube controls!
-                LED_Lose    <= '1'; -- Turn on the red LED
-                -- Wait here until the player hits Reset
-
-        end case;
-    end process;
-
-end Behavioral;
+end Gate_Level;
