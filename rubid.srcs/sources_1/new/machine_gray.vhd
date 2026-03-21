@@ -22,15 +22,36 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
-entity machine_gray is
+entity machine_poker_deal is
     Port ( d_in  : in  STD_LOGIC_VECTOR(15 downto 0);
            d_out : out STD_LOGIC_VECTOR(15 downto 0));
-end machine_gray;
+end machine_poker_deal;
 
-architecture Structural of machine_gray is
+architecture Structural of machine_poker_deal is
 begin
+   
+    -- 0, 4, 8, 12 to p1
+    d_out(0) <= d_in(0);
+    d_out(1) <= d_in(4);
+    d_out(2) <= d_in(8);
+    d_out(3) <= d_in(12);
+
+    -- 1, 5, 9, 13 to p2
+    d_out(4) <= d_in(1);
+    d_out(5) <= d_in(5);
+    d_out(6) <= d_in(9);
+    d_out(7) <= d_in(13);
+
+    -- 2, 6, 10, 14 to p3
+    d_out(8) <= d_in(2);
+    d_out(9) <= d_in(6);
+    d_out(10) <= d_in(10);
+    d_out(11) <= d_in(14);
+
+    -- 3, 7, 11, 15 to p4
+    d_out(12) <= d_in(3);
+    d_out(13) <= d_in(7);
+    d_out(14) <= d_in(11);
     d_out(15) <= d_in(15);
-    gen_gray: for i in 0 to 14 generate
-        d_out(i) <= d_in(i) xor d_in(i+1);
-    end generate;
+
 end Structural;
