@@ -210,6 +210,7 @@ ARCHITECTURE Structural OF top_rubid_game IS
 
     -- time line 
     SIGNAL tick_1hz_wire : STD_LOGIC;
+    SIGNAL active_tick_wire : STD_LOGIC;
 
     -- Security Gate Wires
     SIGNAL secure_btn_exec : STD_LOGIC;
@@ -248,7 +249,9 @@ BEGIN
     auto_boot_reset <= secure_btn_reset OR sys_reset; -- reset cube face when either secure_btn_reset or sys_reset
     -- Wakes up the Move Controller if a normal move is made, OR if the boot/reset triggers.
     combined_execute <= secure_btn_exec OR auto_boot_reset;
-
+    
+    -- start coundown when game is active 
+    active_tick_wire <= tick_1hz_wire AND game_active_wire;
     --- DEBOUNCERS ---
    U_Debounce_Exec : button_debouncer PORT MAP(
        Clk => CLK100MHZ, BTN_In => BTNC, BTN_Out => clean_btn_exec
@@ -343,7 +346,7 @@ BEGIN
         Clk          => CLK100MHZ,
         Load_Enable  => timer_load_wire,
         Time_In      => SW(14 DOWNTO 7), 
-        Tick_1Hz     => tick_1hz_wire,
+        Tick_1Hz     => active_tick_wire,
         Add_Enable   => time_bonus_wire,
         Add_Value    => "00000101",
         

@@ -27,10 +27,23 @@ entity machine_reverse is
            d_out : out STD_LOGIC_VECTOR(15 downto 0));
 end machine_reverse;
 
-architecture Structural of machine_reverse is
+architecture GateLevel of machine_reverse is
 begin
-    -- Wire routing to reverse the bits
-    gen_rev: for i in 0 to 15 generate
-        d_out(i) <= d_in(15 - i);
-    end generate;
-end Structural;
+    --just reverse wire
+    d_out(15) <= d_in(0);
+    d_out(14) <= d_in(1);
+    d_out(13) <= d_in(2);
+    d_out(12) <= d_in(3);
+    d_out(11) <= d_in(4);
+    d_out(10) <= d_in(5);
+    d_out(9)  <= d_in(6);
+    d_out(8)  <= d_in(7);
+    d_out(7)  <= d_in(8);
+    d_out(6)  <= d_in(9);
+    d_out(5)  <= d_in(10);
+    d_out(4)  <= d_in(11);
+    d_out(3)  <= d_in(12);
+    d_out(2)  <= d_in(13);
+    d_out(1)  <= d_in(14);
+    d_out(0)  <= d_in(15);
+end GateLevel;
