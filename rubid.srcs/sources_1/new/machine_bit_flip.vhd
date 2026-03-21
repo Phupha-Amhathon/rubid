@@ -21,13 +21,29 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
-entity machine_bit_flip is
+entity machine_consecutive_xor is
     Port ( d_in  : in  STD_LOGIC_VECTOR(15 downto 0);
            d_out : out STD_LOGIC_VECTOR(15 downto 0));
-end machine_bit_flip;
+end machine_consecutive_xor;
 
-architecture Structural of machine_bit_flip is
-    constant MASK : STD_LOGIC_VECTOR(15 downto 0) := x"5555";
+architecture Structural of machine_consecutive_xor is
 begin
-    d_out <= d_in xor MASK;
+    
+    d_out(0)  <= d_in(0)  xor d_in(1);
+    d_out(1)  <= d_in(1)  xor d_in(2);
+    d_out(2)  <= d_in(2)  xor d_in(3);
+    d_out(3)  <= d_in(3)  xor d_in(4);
+    d_out(4)  <= d_in(4)  xor d_in(5);
+    d_out(5)  <= d_in(5)  xor d_in(6);
+    d_out(6)  <= d_in(6)  xor d_in(7);
+    d_out(7)  <= d_in(7)  xor d_in(8);
+    d_out(8)  <= d_in(8)  xor d_in(9);
+    d_out(9)  <= d_in(9)  xor d_in(10);
+    d_out(10) <= d_in(10) xor d_in(11);
+    d_out(11) <= d_in(11) xor d_in(12);
+    d_out(12) <= d_in(12) xor d_in(13);
+    d_out(13) <= d_in(13) xor d_in(14);
+    d_out(14) <= d_in(14) xor d_in(15);
+    d_out(15) <= d_in(15) xor d_in(0);
+
 end Structural;
