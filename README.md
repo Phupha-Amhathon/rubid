@@ -29,6 +29,14 @@ top_rubid_game
 ├── countdown_timer
 ├── seven_segment_controller
 ├── hardware_scrambler
+    ├── machine_reverse
+    ├── machine_cut
+    ├── machine_shuffle
+    ├── machine_poker_deal
+    ├── machine_xor_magic
+    ├── machine_consecutive_xor
+    ├── machine_doce_fleur
+    ├── machine_all_in
 
 
 </pre>
