@@ -29,6 +29,8 @@ end machine_shuffle;
 
 architecture Structural of machine_shuffle is
 begin
+-- do faro shuffle in circuit lol
+-- 7 - 0 zig zag with 15 - 8
     d_out(0)  <= d_in(0);   d_out(1)  <= d_in(8);
     d_out(2)  <= d_in(1);   d_out(3)  <= d_in(9);
     d_out(4)  <= d_in(2);   d_out(5)  <= d_in(10);
